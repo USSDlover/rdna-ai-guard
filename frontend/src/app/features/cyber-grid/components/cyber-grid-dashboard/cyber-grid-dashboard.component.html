@@ -1,4 +1,4 @@
-<section class="flex h-full min-h-0 flex-col gap-6">
+<section class="flex flex-col gap-6">
   <header class="space-y-1">
     <p class="text-xs font-semibold tracking-[0.2em] text-cyan-400 uppercase">
       Cyber Grid Security
@@ -42,7 +42,5 @@
     </article>
   </div>
 
-  <div class="min-h-0 flex-1">
-    <app-telemetry-table [events]="state.events()" />
-  </div>
+  <app-telemetry-table [events]="state.events()" />
 </section>

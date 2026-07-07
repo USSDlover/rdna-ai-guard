@@ -1,0 +1,8 @@
+:host {
+  display: block;
+}
+
+.telemetry-table-body {
+  min-height: 28rem;
+  max-height: min(70vh, 48rem);
+}

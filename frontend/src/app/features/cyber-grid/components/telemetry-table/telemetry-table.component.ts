@@ -7,6 +7,7 @@ import { TelemetryEvent } from '../../../../core/models/telemetry-event.model';
   selector: 'app-telemetry-table',
   imports: [CurrencyPipe, DatePipe],
   templateUrl: './telemetry-table.component.html',
+  styleUrl: './telemetry-table.component.css',
 })
 export class TelemetryTableComponent {
   readonly events = input.required<TelemetryEvent[]>();
