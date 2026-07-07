@@ -1,59 +1,80 @@
-# Frontend
+# 📡 RDNA AI GUARD // FRONTEND_STATION
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.4.
+This is the control deck for RDNA AI Guard. It leverages **Angular 19+**, native fine-grained **Signals**, and **RxJS event stream pipelines** to capture real-time security alerts without rendering degradation.
 
-## Development server
+---
 
-To start a local development server, run:
+## 🏗️ ARCHITECTURE // FEATURE-DRIVEN DESIGN (FDD)
 
-```bash
-ng serve
+To maintain a scalable enterprise footprint, this frontend follows a strict **Feature-Driven Design** topology. Code is organized explicitly around business domain capabilities rather than shared technical types (e.g., placing all services or components in giant shared global directories is prohibited).
+
+### Workspace Folder Layout
+```text
+src/app/
+├── core/                         # Global, immutable singletons (guards, interceptors)
+├── shared/                       # Dumb UI UI atoms, pipes, generic layouts
+└── features/                     # Distinct, autonomous business-domain engines
+    ├── cyber-grid/               # FEATURE: Packet inspection, threat graphs, IP traces
+    │   ├── components/
+    │   ├── data-access/          # API services, SSE event streams
+    │   └── utils/
+    ├── ledger-audit/             # FEATURE: Real-time fraud tracking, cash loops
+    │   ├── components/
+    │   ├── data-access/
+    │   └── store/                # Dedicated Feature SignalState
+    └── dashboard-shell/          # FEATURE: Nav, grid wrappers, shell layout
+
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+### Core Architecture Rules
 
-## Code scaffolding
+1. **Isolation:** Features must never deeply import private components from other features. Cross-feature data propagation must happen exclusively via shared services or unified global store states.
+2. **Data-Access Separation:** Component files must strictly render views. Raw HTTP streaming fetching, WebSocket listeners, and transformer utilities belong within the local `data-access/` layer.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+---
 
-```bash
-ng generate component component-name
-```
+## 🚀 STARTUP PROTOCOL
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+### 1. Build Compilation
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+Navigate to the frontend container and unpack package blueprints:
 
 ```bash
-ng build
+cd frontend
+npm install
+
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+### 2. Activate Station
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Boot up the local dev server matching the specified CORS allowances configuration:
 
 ```bash
-ng test
+ng serve --port 4200
+
 ```
 
-## Running end-to-end tests
+Open up your secure browser layout to: **`http://localhost:4200`**
 
-For end-to-end (e2e) testing, run:
+---
 
-```bash
-ng e2e
-```
+## ⚡ TELEMETRY CONSUMPTION SPECIFICATION
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+To consume the real-time pipeline from the FastAPI matrix, initialize a stream within your feature's `data-access` service matching this framework pattern:
 
-## Additional Resources
+```typescript
+import { Injectable, signal } from '@angular/core';
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+@Injectable({ providedIn: 'root' })
+export class TelemetryStreamService {
+  readonly latestEvent = signal<any>(null);
+
+  connectTelemetryStream(): void {
+    const stream = new EventSource('http://localhost:8000/api/v1/telemetry/stream');
+    
+    stream.addEventListener('telemetry', (event: MessageEvent) => {
+      const data = JSON.parse(event.data);
+      this.latestEvent.set(data); // Micro-fine signal node update skipping dirty component checks
+    });
+  }
+}
