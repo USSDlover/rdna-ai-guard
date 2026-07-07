@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rdna-guard-backend
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_HOST: http://host.docker.internal:11434
+      GEMMA_MODEL: gemma4:12b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - rdna-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rdna-guard-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    networks:
+      - rdna-network
+    restart: unless-stopped
+
+networks:
+  rdna-network:
+    driver: bridge
+    name: rdna-network
