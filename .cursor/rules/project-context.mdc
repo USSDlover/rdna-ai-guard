@@ -1,0 +1,29 @@
+---
+alwaysApply: true
+---
+---
+description: Contains the core product domain knowledge, architectural layout, and naming rules.
+globs: *
+---
+# 🔬 PROJECT CONTEXT & ARCHITECTURAL PATHWAYS
+
+## 🎯 PRODUCT IDENTITY
+- **Name:** RDNA AI Guard
+- **Domain:** FinSec (Financial Security) — Unified detection of network/API exploits alongside synthetic financial fraud syndicates.
+- **Core Value Proposition:** High-frequency logging safely processed over a **Zero-Token Local Triage Layer** running on AMD hardware, micro-routing data to cloud models ONLY during highly complex security crises.
+
+## 🔄 DATA PIPELINE FLOW
+1. **Ingestion:** FastAPI asynchronously consumes streaming webhooks or raw network packets via Scapy.
+2. **Local Triage:** The payload hits a locally hosted Gemma 4 instance inside Ollama. 
+   - Clean/Low-Risk -> Logged locally. **Cost = $0.00 (Zero Cloud Tokens)**.
+   - High-Risk/Anomaly -> Escalated dynamically.
+3. **Cloud Reasoning Mesh:** LangGraph orchestrates concurrent analysis:
+   - **CyberSec Agent:** Decodes network exploit signatures, header manipulations, or packet-level anomalies.
+   - **Anti-Fraud Agent:** Unpacks cross-border transfer velocities, structuring loops, and account mules.
+4. **Synthesis & Emission:** Results merge into a unified diagnostics payload and stream directly to the Angular Frontend Control Grid using Server-Sent Events (SSE).
+
+## 🗂️ DIRECTORY STRUCTURE RULES
+Maintain this exact structure. Never write files outside these structural contexts:
+- `/backend/app/network/` -> FastAPI route processing, low-level sniffer configurations.
+- `/backend/app/agents/` -> Local prompt layouts, LangGraph agent network nodes.
+- `/frontend/src/app/` -> Highly reactive components separated clean via Signals.

@@ -1,0 +1,29 @@
+---
+alwaysApply: true
+---
+---
+description: Enforces the strict tech stack configuration for RDNA AI Guard to prevent framework hallucination.
+globs: *
+---
+# ⚡ RDNA AI GUARD // TECH STACK MATRIX
+
+You are an expert architect on the RDNA AI Guard system. You must strictly adhere to the following technological boundaries. NEVER suggest, install, or write boilerplate for alternative frameworks.
+
+## 🧭 FRONTEND STACK
+- **Framework:** Angular 19+ (Strict Enterprise Modular/Signal-driven architecture)
+- **State Management:** NgRx Signals (`@ngrx/signals` / `signalStore`)
+- **Reactivity:** Native Angular Signals and RxJS for heavy stream management. Prefer Signals for UI binding and RxJS for stream piping (e.g., `bufferTime`, `switchMap`).
+- **Styling:** Tailwind CSS (utility-first, clean cyber/dark layout).
+- **Data Ingestion:** EventSource / Server-Sent Events (SSE) and native Angular streaming `resource` primitives to map backend streams.
+
+## ⚙️ BACKEND STACK
+- **Language:** Python 3.12+
+- **Framework:** FastAPI (Fully asynchronous ASGI loop)
+- **Low-Level Networking:** Scapy / PyPcap for packet sniffing and raw protocol parsing.
+- **AI Agent Orchestration:** LangGraph / CrewAI for multi-agent loops.
+- **Local Routing Layer:** Ollama executing Google's Gemma 4 (12B/E4B) with explicit JSON format constraints (`format="json"`).
+- **Cloud Execution Layer:** Fireworks AI API (optimized for cloud-hosted AMD MI300X compute).
+- **Database:** PostgreSQL utilizing an async driver (`asyncpg` via SQLModel/SQLAlchemy).
+
+## 🐳 INFRASTRUCTURE
+- Fully containerized via a single root Monorepo `docker-compose.yml` linking independent front/back sub-apps.

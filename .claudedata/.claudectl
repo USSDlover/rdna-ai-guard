@@ -1,0 +1,14 @@
+[PROJECT PROFILE: RDNA AI Guard]
+[STAGE: Active Hackathon Blueprint Development (AMD Developer Hackathon ACT II)]
+
+[PROJECT SUMMARY]
+RDNA AI Guard is a FinSec intelligence platform that pairs an Angular 19+ Signals dashboard with an async Python FastAPI backend to track network exploits and transaction fraud. It runs token-efficient triage locally via Ollama + Gemma 4. Trusted logs pass instantly at zero token cost. Compromised, high-stakes vectors are dispatched to a multi-agent LangGraph system hosted on Fireworks AI's cloud AMD MI300X processors.
+
+[CODEBASE CONSTRAINTS]
+1. Monorepo design containing /frontend (Angular) and /backend (FastAPI).
+2. UI updates must bypass extensive component re-renders by anchoring stream hooks into Angular Signals.
+3. Python layer handles parsing of low-level packet payloads (via Scapy) and orchestrates structured JSON outputs from Gemma 4.
+4. Database interaction is async PostgreSQL. 
+
+[EXPECTATIONS]
+When writing code snippets, prioritize performance, type safety, asynchronous patterns, and avoid framework or boilerplate compromises. Maintain a clean, high-performance, enterprise-grade architecture.
