@@ -1,0 +1,83 @@
+<section
+  class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 shadow-[0_0_30px_rgba(6,182,212,0.08)]"
+  aria-label="Live telemetry stream"
+>
+  <header
+    class="flex items-center justify-between border-b border-slate-800 px-4 py-3"
+  >
+    <div>
+      <h2 class="text-sm font-semibold tracking-wide text-cyan-300 uppercase">
+        Live Telemetry Matrix
+      </h2>
+      <p class="text-xs text-slate-400">SSE packets ingested in real time</p>
+    </div>
+    <span
+      class="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300 ring-1 ring-cyan-500/30"
+    >
+      <span class="h-2 w-2 animate-pulse rounded-full bg-cyan-400" aria-hidden="true"></span>
+      Streaming
+    </span>
+  </header>
+
+  <div class="min-h-40 flex-1 overflow-auto">
+    <table class="min-w-full text-left text-sm text-slate-200">
+      <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs tracking-wider text-slate-400 uppercase backdrop-blur">
+        <tr>
+          <th scope="col" class="px-4 py-3 font-medium">Timestamp</th>
+          <th scope="col" class="px-4 py-3 font-medium">Source IP</th>
+          <th scope="col" class="px-4 py-3 font-medium">Path</th>
+          <th scope="col" class="px-4 py-3 font-medium">Amount</th>
+          <th scope="col" class="px-4 py-3 font-medium">Account</th>
+          <th scope="col" class="px-4 py-3 font-medium">Risk</th>
+          <th scope="col" class="px-4 py-3 font-medium">Vector</th>
+          <th scope="col" class="px-4 py-3 font-medium">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (!events().length) {
+          <tr>
+            <td colspan="8" class="px-4 py-10 text-center text-slate-500">
+              Awaiting telemetry packets from the ingestion gate…
+            </td>
+          </tr>
+        } @else {
+          @for (event of events(); track event.id) {
+            <tr
+              class="border-t border-slate-800/80 transition-colors hover:bg-slate-900/60"
+              [class]="rowClasses(event)"
+            >
+              <td class="px-4 py-3 whitespace-nowrap text-slate-300">
+                {{ event.timestamp | date: 'HH:mm:ss.SSS' }}
+              </td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-200">{{ event.source_ip }}</td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-400">{{ event.request_path }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                {{ event.transaction_amount | currency: 'USD' : 'symbol' : '1.2-2' }}
+              </td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-400">{{ event.account_token }}</td>
+              <td class="px-4 py-3">
+                <span [class]="riskScoreClasses(event.risk_score)">{{ event.risk_score }}</span>
+              </td>
+              <td class="px-4 py-3">
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  [class]="vectorBadgeClasses(event)"
+                >
+                  {{ event.primary_vector }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <span
+                  class="rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase"
+                  [class]="statusBadgeClasses(event)"
+                >
+                  {{ event.status }}
+                </span>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
