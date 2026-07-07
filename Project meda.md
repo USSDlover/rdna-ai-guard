@@ -1,0 +1,3 @@
+Title:			RDNA Guard
+Tagline:		Token-Efficient Financial Cyber-Defense Agent Network
+Description:	RDNA AI Guard is a unified FinSec platform blocking network exploits and financial fraud. Built with an Angular streaming UI and a FastAPI network engine, it uses a local Gemma 4 router via Ollama for zero-token telemetry triage. Low-risk data passes instantly; high-risk vectors trigger advanced cloud agent reasoning loops.
