@@ -1,126 +1,228 @@
-# ⚡ RDNA AI GUARD // TERMINAL_ACCESS_📡
+# RDNA AI Guard
 
 [![AMD Hackathon Track](https://img.shields.io/badge/AMD_ACT_II-Unicorn_Track-FE5F55?style=flat-square&logo=amd&logoColor=white)](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-ii/rdna-rebels)
-[![Inference Routing](https://img.shields.io/badge/Local_Triage-Gemma_4-4F5D75?style=flat-square&logo=google&logoColor=white)](https://ollama.com)
-[![Engine Architecture](https://img.shields.io/badge/Stack-FastAPI_%2B_Angular_19-2D3142?style=flat-square)](https://github.com)
+[![Stack](https://img.shields.io/badge/Stack-FastAPI_%2B_Angular-2D3142?style=flat-square)](https://github.com)
 
-> **STATUS:** SECURE // DEPLOYED
-
-> **CORE OBJECTIVE:** Intercept dual-vector network exploits and synthetic financial fraud at line-rate. Zero external token latency for trusted streams. Adaptive neural escalation via AMD-optimized pipelines.
+Unified FinSec telemetry platform for the AMD Developer Hackathon. The backend ingests and triages security events over FastAPI; the Angular control grid consumes a live Server-Sent Events (SSE) stream for real-time threat visualization.
 
 ---
 
-## 👁️‍🗨️ THE SYSTEM CONCEPT
-
-Modern corporate warfare doesn't compromise a single database; it attacks your financial infrastructure using automated botnets, credential-stuffing exploits, and coordinated transaction looping. Traditional perimeter guards are too slow. Cloud APIs are too expensive to query at scale.
-
-**RDNA AI Guard** is a tactical financial security (FinSec) mesh. It couples low-level network instrumentation directly into an edge-optimized AI triage pipeline. 
-
-
-```
-                            [ NET TRAFFIC STREAM ]
-                                      │
-                                      ▼
-                     ┌─────────────────────────────────┐
-                     │   FastAPI Ingestion Node        │
-                     └─────────────────────────────────┘
-                                      │
-                                      ▼
-                     ┌─────────────────────────────────┐
-                     │   RDNA LOCAL CHIP / GEMMA 4     │ ──[ CLEAN ]──► [ PASS THROUGH ]
-                     │     (Zero-Token Edge Triage)     │                (Cost: $0.00)
-                     └─────────────────────────────────┘
-                                      │
-                               [ DEEP ANOMALY ]
-                                      │
-                                      ▼
-                     ┌─────────────────────────────────┐
-                     │   LANGGRAPH CLOUD AGENT MESH    │ ──► [ CYBERSEC AGENT ]
-                     │       (Fireworks AI Stack)      │ ──► [ ANTI-FRAUD AGENT ]
-                     └─────────────────────────────────┘
-                                      │
-                                      ▼
-                     ┌─────────────────────────────────┐
-                     │   ANGULAR SIGNALS DASHBOARD     │ ===> [ THREAT MITIGATION ]
-                     └─────────────────────────────────┘
-
-```
-
-
-### Key Capabilities
-* **Zero-Token Triage:** Local **Gemma 4** evaluation via **Ollama** screens line-rate logs. Trusted traffic incurs exactly zero global API routing costs.
-* **Dual-Vector Intelligence:** Escalated network events feed an parallel agent mesh—**CyberSec Operational Node** parses technical exploits; **Anti-Fraud Ledger Node** hunts complex multi-account laundering circles.
-* **Reactive Streaming UI:** An **Angular** telemetry control grid uses micro-fine Signals architectures to handle fast database states without rendering stalls.
-
----
-
-## 🛠️ THE SILICON STACK
+## Repository Layout
 
 ```text
-├── 🧭 FRONTEND // Angular 19+ • NgRx Signals • Tailwind CSS • RxJS WebSockets
-├── ⚙️ BACKEND  // Python 3.12 • FastAPI (Async loop) • Scapy Raw Packet Sniffer
-└── 🧠 AI CORE  // Ollama + Gemma 4 (Edge) • LangGraph (Orchestration) • Fireworks AI (Cloud AMD Compute)
-
+RDNA Guard/
+├── backend/                  # FastAPI async API (Python 3.12)
+│   ├── app/
+│   │   ├── core/             # Settings and configuration
+│   │   ├── models/           # Pydantic schemas
+│   │   └── network/          # Telemetry triage + SSE routes
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/                 # Angular control station
+│   ├── src/app/
+│   │   ├── core/             # SSE telemetry stream service
+│   │   └── features/         # Dashboard shell + cyber grid
+│   ├── nginx.conf
+│   └── Dockerfile
+└── docker-compose.yml        # Multi-container orchestration
 ```
 
 ---
 
-## 🚀 BOOTING THE MATRIX // QUICKSTART
+## Prerequisites
 
-Ensure you have your environment credentials set up inside a local root `.env` file before initiating compilation sequence:
+| Tool | Version | Used For |
+|------|---------|----------|
+| Docker | 24+ | Unified Compose stack |
+| Docker Compose | v2+ | Multi-service orchestration |
+| Python | 3.12+ | Native backend development |
+| Node.js | 20+ | Native frontend development |
+| npm | 10+ | Frontend package management |
 
-```env
-FIREWORKS_API_KEY=fw_your_secure_agentic_key_here
+Optional (for future AI routing integration):
 
-```
+- **Ollama** running locally on `http://localhost:11434`
 
-### Command Protocol
+---
 
-To pull, bind, and activate all network modules, execute from your local terminal configuration:
+## The Unified Vector (Docker Compose)
+
+Run both the backend and frontend together with a single command from the repository root.
+
+### 1. Start the stack
 
 ```bash
-# Clone the repository
-git clone https://github.com/USSDlover/rdna-ai-guard.git
-cd rdna-ai-guard
-
-# Run the system assembly via Docker Orchestration
-docker-compose up --build
-
+docker compose up --build
 ```
 
-Once dependencies settle and initialization streams lock green, monitor local interfaces:
+To run detached:
 
-* 🖥️ **Control Interface:** `http://localhost:4200`
-* 📡 **Backend Gateway:** `http://localhost:8000/docs`
-* 🧠 **Ollama Endpoint:** `http://localhost:11434`
+```bash
+docker compose up --build -d
+```
+
+### 2. Access the services
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Frontend (Control Grid) | http://localhost:4200 | Angular dashboard served by Nginx |
+| Backend (API Gateway) | http://localhost:8000 | FastAPI root |
+| API Documentation | http://localhost:8000/docs | Interactive Swagger UI |
+| Health Check | http://localhost:8000/health | Service status probe |
+| SSE Telemetry Stream | http://localhost:8000/api/v1/telemetry/stream | Live event stream |
+
+### 3. Stop the stack
+
+```bash
+docker compose down
+```
+
+### Compose topology
+
+- **backend** — built from `./backend`, exposed on `8000:8000`
+- **frontend** — built from `./frontend`, exposed on `4200:80` (container Nginx listens on port 80)
+- Both services share the `rdna-network` bridge network
+- `frontend` declares `depends_on: backend` so the API container starts first
+
+### Environment overrides (Compose)
+
+The backend container receives these environment variables:
+
+```env
+OLLAMA_HOST=http://host.docker.internal:11434
+GEMMA_MODEL=gemma4:12b
+```
+
+`host.docker.internal` allows the containerized backend to reach Ollama running on the host machine. Ensure Ollama is started locally if you plan to integrate live model routing.
 
 ---
 
-## 🛰️ REPOSITORY LOGISTICS
+## The Isolated Vectors (Independent Local Execution)
 
-```text
-rdna-ai-guard/
-├── docs/                     # High level project documentations
-├── backend/                  # Network telemetry engine & async routers
-│   ├── app/
-│   │   ├── network/          # Scapy payload sniffers and socket hooks
-│   │   └── agents/           # LangGraph tactical multi-agent architecture
-│   └── Dockerfile
-├── frontend/                 # High-frequency visual control station
-│   ├── src/app/              # Angular components (CyberGrid / LedgerAudit)
-│   └── Dockerfile
-└── docker-compose.yml        # Multi-service network cluster orchestrator
+Use these paths when you need to debug one layer without rebuilding containers.
 
+### Backend only (native Python)
+
+```bash
+cd backend
+
+# Create and activate a virtual environment
+python -m venv venv
+
+# macOS / Linux
+source venv/bin/activate
+
+# Windows (PowerShell)
+.\venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Start the ASGI server with hot reload
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Verify the backend:
+
+```bash
+curl http://localhost:8000/health
+curl -N http://localhost:8000/api/v1/telemetry/stream
+```
+
+API docs: http://localhost:8000/docs
+
+Optional `.env` in `backend/` (loaded automatically by the app):
+
+```env
+PROJECT_NAME=RDNA AI Guard
+API_V1_STR=/api/v1
+OLLAMA_HOST=http://localhost:11434
+GEMMA_MODEL=gemma4:12b
 ```
 
 ---
 
-## 🧬 TEAM CREDENTIALS
+### Frontend only (native Angular)
 
-Built by team **RDNA Rebels** for the **AMD Developer Hackathon ACT II**.
+The frontend expects the backend SSE endpoint at `http://127.0.0.1:8000`. Start the backend first (see above) or run only the mock UI shell without live data.
 
-* **Project Workspace:** [LabLab.ai // RDNA Rebels](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-ii/rdna-rebels)
+```bash
+cd frontend
 
+# Install dependencies
+npm install
+
+# Start the dev server
+npm start
 ```
-// SECURITY COMPLIANCE VERIFIED // END LOG ENTRY
+
+The dev server runs at http://localhost:4200 with live reload.
+
+Build a production bundle locally:
+
+```bash
+npm run build
 ```
+
+Output directory: `frontend/dist/frontend/browser`
+
+---
+
+## Port Reference
+
+| Port | Service | Context |
+|------|---------|---------|
+| `4200` | Frontend | `ng serve` (dev) or Docker Compose (`4200:80`) |
+| `8000` | Backend | `uvicorn` (dev) or Docker Compose (`8000:8000`) |
+| `11434` | Ollama | Host-only AI routing endpoint (optional) |
+
+---
+
+## API Endpoints (Backend)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Service health probe |
+| `POST` | `/api/v1/telemetry/triage` | Deterministic risk triage (Ollama-style response) |
+| `GET` | `/api/v1/telemetry/stream` | Infinite SSE telemetry stream |
+
+CORS is configured for `http://localhost:4200` so the Angular app can consume the API from both native dev and Docker-mapped ports.
+
+---
+
+## Troubleshooting
+
+**Port already in use**
+
+```bash
+# Windows
+netstat -ano | findstr :8000
+netstat -ano | findstr :4200
+
+# macOS / Linux
+lsof -i :8000
+lsof -i :4200
+```
+
+Stop the conflicting process or change the host port mapping in `docker-compose.yml`.
+
+**Frontend shows no telemetry rows**
+
+Confirm the backend is running and reachable at http://127.0.0.1:8000/health before opening the Cyber Grid dashboard.
+
+**Docker build fails on frontend**
+
+Ensure `package-lock.json` is present in `frontend/`. The Dockerfile uses `npm ci` for reproducible installs.
+
+**Angular routes return 404 in Docker**
+
+The Nginx config in `frontend/nginx.conf` uses `try_files` fallback to `index.html` for client-side routing.
+
+---
+
+## Team
+
+Built by **RDNA Rebels** for the **AMD Developer Hackathon ACT II**.
+
+- Project workspace: [LabLab.ai // RDNA Rebels](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-ii/rdna-rebels)
