@@ -1,0 +1,15 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.ledger-shell {
+  min-height: calc(100vh - 10rem);
+}
+
+.ledger-table-body {
+  min-height: 16rem;
+  max-height: min(42vh, 28rem);
+}

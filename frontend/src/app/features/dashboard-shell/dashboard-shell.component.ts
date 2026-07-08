@@ -24,9 +24,9 @@ export class DashboardShellComponent {
     },
     {
       label: 'Financial Ledger Audit',
-      route: '/dashboard/financial-ledger',
+      route: '/dashboard/ledger-audit',
       description: 'Fraud syndicate tracing',
-      enabled: false,
+      enabled: true,
     },
   ]);
 
