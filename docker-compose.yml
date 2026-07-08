@@ -45,9 +45,9 @@ services:
       - rdna-network
     entrypoint: >
       /bin/sh -c "
-      echo '⏳ Triggering Ollama pull for model gemma4:12b...';
-      curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"gemma4:12b\"}';
-      echo '✅ Model pull process initiated!';
+      echo '⏳ Initiating Ollama pull for model gemma4:12b...';
+      curl -X POST http://ollama:11434/api/pull -H 'Content-Type: application/json' -d '{\"name\": \"gemma4:12b\", \"stream\": false}';
+      echo '\n✅ Model pull queued successfully!';
       "
 
   backend:
