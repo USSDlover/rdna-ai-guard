@@ -1,6 +1,8 @@
 import { Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
+import { GlobalThreatToastComponent } from '../../shared/components/global-threat-toast/global-threat-toast.component';
+
 interface NavItem {
   label: string;
   route: string;
@@ -10,7 +12,7 @@ interface NavItem {
 
 @Component({
   selector: 'app-dashboard-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, GlobalThreatToastComponent],
   templateUrl: './dashboard-shell.component.html',
   styleUrl: './dashboard-shell.component.css',
 })

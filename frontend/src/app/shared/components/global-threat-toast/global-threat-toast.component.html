@@ -1,0 +1,64 @@
+@if (activeAlerts().length) {
+  <section
+    class="toast-stack pointer-events-none fixed top-6 right-6 z-50 flex w-full max-w-md flex-col gap-3"
+    aria-live="assertive"
+    aria-label="High severity threat alerts"
+  >
+    @for (alert of activeAlerts(); track alert.id) {
+      <article
+        class="toast-card pointer-events-auto overflow-hidden rounded-xl border border-red-500/40 border-l-4 border-l-red-500 bg-slate-900/95 p-4 shadow-[0_0_30px_rgba(239,68,68,0.25)] backdrop-blur-md"
+        role="alert"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-3">
+            <span
+              class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300 ring-1 ring-red-500/50"
+              aria-hidden="true"
+            >
+              <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-red-400"></span>
+            </span>
+
+            <div class="min-w-0 space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="text-xs font-semibold tracking-[0.18em] text-red-300 uppercase">
+                  High-Severity Threat
+                </p>
+                <span
+                  class="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ring-1"
+                  [class]="vectorBadgeClasses(alert)"
+                >
+                  {{ alert.primary_vector }}
+                </span>
+              </div>
+
+              <p class="text-sm font-medium text-slate-100">
+                Risk score
+                <span class="font-bold text-red-400">{{ alert.risk_score }}</span>
+                detected from
+                <span class="font-mono text-cyan-200">{{ alert.source_ip }}</span>
+              </p>
+
+              @if (alert.transaction_amount > 0) {
+                <p class="text-xs text-slate-400">
+                  Transaction amount:
+                  <span class="font-semibold text-amber-300">
+                    {{ alert.transaction_amount | currency: 'USD' : 'symbol' : '1.2-2' }}
+                  </span>
+                </p>
+              }
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/80 text-lg leading-none text-slate-300 transition-colors hover:border-red-500/50 hover:bg-red-950/50 hover:text-white"
+            aria-label="Dismiss threat alert"
+            (click)="dismiss(alert.id)"
+          >
+            ×
+          </button>
+        </div>
+      </article>
+    }
+  </section>
+}

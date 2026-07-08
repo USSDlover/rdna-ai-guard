@@ -1,0 +1,35 @@
+:host {
+  display: contents;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.toast-card {
+  animation:
+    toast-slide-in 280ms ease-out,
+    toast-fade-in 280ms ease-out;
+}
+
+.toast-stack {
+  animation: toast-fade-in 180ms ease-out;
+}
