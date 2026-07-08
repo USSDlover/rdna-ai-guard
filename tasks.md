@@ -96,3 +96,9 @@ To prevent file conflicts and overlapping commits, assign tasks to team members 
 
 ## 🏁 MILESTONE VALIDATION
 The workspace is complete when a live packet payload target dropped into the backend API gateway triggers a local Gemma inference calculation, records the row state securely in PostgreSQL, routes complex alerts to cloud models, and reflects the updated data instantly on your Angular Dashboard UI via micro-fine Signals updates.
+
+---
+
+## Bugs
+
+1. FE when switching between dashboards, the table is not loading the data.
