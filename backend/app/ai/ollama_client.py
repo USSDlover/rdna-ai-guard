@@ -9,7 +9,8 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_TIMEOUT_SECONDS = 15.0
+# Raised timeout threshold to prevent premature fallbacks during local inference
+OLLAMA_TIMEOUT_SECONDS = 120.0
 NARRATIVE_MAX_LENGTH = 200
 
 TRIAGE_SYSTEM_PROMPT = """You are a FinSec & Network Triage Analyst for RDNA AI Guard.
@@ -44,12 +45,11 @@ async def preload_gemma_model() -> None:
     url = f"{settings.OLLAMA_HOST.rstrip('/')}/api/chat"
     body = {
         "model": settings.GEMMA_MODEL,
-        "keep_alive": -1,  # -1 keeps model loaded until explicitly unloaded or daemon stops
+        "keep_alive": -1,  # Keeps model pinned in memory indefinitely
     }
 
     logger.info(f"⏳ Preloading {settings.GEMMA_MODEL} into memory...")
     try:
-        # 180s timeout allows slow disk-to-VRAM transfers on initial load
         timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             res = await client.post(url, json=body)
@@ -66,7 +66,7 @@ async def unload_gemma_model() -> None:
     url = f"{settings.OLLAMA_HOST.rstrip('/')}/api/chat"
     body = {
         "model": settings.GEMMA_MODEL,
-        "keep_alive": 0,  # 0 forces Ollama to evict model weights immediately
+        "keep_alive": 0,  # Forces immediate eviction from memory
     }
 
     logger.info(f"🧹 Unloading {settings.GEMMA_MODEL} from VRAM/RAM...")
@@ -96,10 +96,23 @@ async def run_gemma_triage(payload_metadata: dict[str, Any]) -> dict[str, Any]:
         ],
         "stream": False,
         "format": "json",
+        "keep_alive": "10m",  # Keeps model warm in memory between incoming calls
+        "options": {
+            "temperature": 0.0,  # Fast, deterministic output
+            "num_predict": 200,   # Caps generation length to avoid runaway reasoning loops
+        },
     }
 
+    # Explicit HTTPX timeout configuration matching OLLAMA_TIMEOUT_SECONDS
+    timeout = httpx.Timeout(
+        connect=10.0,
+        read=OLLAMA_TIMEOUT_SECONDS,
+        write=10.0,
+        pool=10.0,
+    )
+
     try:
-        async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
                 f"{settings.OLLAMA_HOST.rstrip('/')}/api/chat",
                 json=request_body,
