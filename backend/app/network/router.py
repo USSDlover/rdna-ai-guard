@@ -1,13 +1,15 @@
 import asyncio
-import json
 import random
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.db import async_session_factory, get_async_session
+from app.core.events import broadcast_manager
 from app.models.schemas import (
     OllamaMessage,
     PrimaryVector,
@@ -16,6 +18,7 @@ from app.models.schemas import (
     TelemetryTriageRequest,
     TelemetryTriageResponse,
 )
+from app.services.telemetry_service import get_recent_telemetry, save_telemetry_event
 
 router = APIRouter(prefix="/telemetry", tags=["Telemetry"])
 
@@ -175,23 +178,56 @@ def _build_spike_event(sequence: int) -> TelemetryEvent:
     )
 
 
+def _build_seed_event(sequence: int) -> TelemetryEvent:
+    if sequence % 4 == 3:
+        return _build_spike_event(sequence)
+    return _build_clean_event(sequence)
+
+
+async def _persist_and_broadcast(
+    event: TelemetryEvent,
+    session: AsyncSession,
+    *,
+    triage_narrative: str | None = None,
+) -> TelemetryEvent:
+    if triage_narrative is not None:
+        event.triage_narrative = triage_narrative
+
+    persisted = await save_telemetry_event(event, session)
+    await broadcast_manager.publish(persisted)
+    return persisted
+
+
+async def _replay_recent_events() -> list[TelemetryEvent]:
+    async with async_session_factory() as session:
+        recent_events = await get_recent_telemetry(session, limit=50)
+
+    return list(reversed(recent_events))
+
+
 async def _telemetry_event_stream():
-    sequence = 0
-    while True:
-        if sequence % 4 == 3:
-            event = _build_spike_event(sequence)
-        else:
-            event = _build_clean_event(sequence)
+    queue = await broadcast_manager.subscribe()
 
-        payload = event.model_dump_json()
-        yield f"event: telemetry\ndata: {payload}\n\n"
+    try:
+        for event in await _replay_recent_events():
+            payload = event.model_dump_json()
+            yield f"event: telemetry\ndata: {payload}\n\n"
 
-        sequence += 1
-        await asyncio.sleep(random.uniform(1.0, 2.0))
+        while True:
+            event = await queue.get()
+            payload = event.model_dump_json()
+            yield f"event: telemetry\ndata: {payload}\n\n"
+    except asyncio.CancelledError:
+        raise
+    finally:
+        broadcast_manager.unsubscribe(queue)
 
 
 @router.post("/triage", response_model=TelemetryTriageResponse)
-async def triage_telemetry(payload: TelemetryTriageRequest) -> TelemetryTriageResponse:
+async def triage_telemetry(
+    payload: TelemetryTriageRequest,
+    session: AsyncSession = Depends(get_async_session),
+) -> TelemetryTriageResponse:
     telemetry = _build_telemetry_event(
         source_ip=payload.source_ip,
         request_path=payload.request_path,
@@ -207,13 +243,37 @@ async def triage_telemetry(payload: TelemetryTriageRequest) -> TelemetryTriageRe
         transaction_amount=telemetry.transaction_amount,
     )
 
+    persisted = await _persist_and_broadcast(
+        telemetry,
+        session,
+        triage_narrative=narrative,
+    )
+
     return TelemetryTriageResponse(
         model=settings.GEMMA_MODEL,
         created_at=_utc_iso(),
         message=OllamaMessage(role="assistant", content=narrative),
         done=True,
-        telemetry=telemetry,
+        telemetry=persisted,
     )
+
+
+@router.post("/seed")
+async def seed_telemetry(
+    session: AsyncSession = Depends(get_async_session),
+    count: int = Query(default=1, ge=1, le=20),
+) -> dict[str, object]:
+    seeded_events: list[TelemetryEvent] = []
+
+    for sequence in range(count):
+        event = _build_seed_event(sequence)
+        persisted = await _persist_and_broadcast(event, session)
+        seeded_events.append(persisted)
+
+    return {
+        "seeded": len(seeded_events),
+        "events": seeded_events,
+    }
 
 
 @router.get("/stream")
