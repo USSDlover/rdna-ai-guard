@@ -1,8 +1,19 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
-.telemetry-table-body {
-  min-height: 28rem;
-  max-height: min(70vh, 48rem);
+.telemetry-viewport {
+  width: 100%;
+}
+
+.telemetry-viewport .cdk-virtual-scroll-content-wrapper {
+  width: 100%;
+}
+
+.telemetry-row:focus-visible {
+  outline: 2px solid rgb(34 211 238 / 0.8);
+  outline-offset: -2px;
 }

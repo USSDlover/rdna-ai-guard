@@ -1,46 +1,46 @@
-<section class="flex flex-col gap-6">
-  <header class="space-y-1">
+<section class="dashboard-shell flex h-full min-h-0 flex-col gap-4">
+  <header class="shrink-0 space-y-1">
     <p class="text-xs font-semibold tracking-[0.2em] text-cyan-400 uppercase">
       Cyber Grid Security
     </p>
     <h1 class="text-2xl font-semibold text-slate-100">Real-Time Threat Control Grid</h1>
     <p class="max-w-3xl text-sm text-slate-400">
-      Monitoring live SSE telemetry from the RDNA AI Guard ingestion gate. Metric cards and
-      the matrix below update instantly as packets arrive.
+      Monitoring live SSE telemetry from the RDNA AI Guard ingestion gate. The virtualized matrix
+      below renders only visible rows to sustain high packet throughput without UI degradation.
     </p>
   </header>
 
-  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  <div class="grid shrink-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
     <article
-      class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-5 shadow-[inset_0_1px_0_rgba(148,163,184,0.08)]"
+      class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-4 shadow-[inset_0_1px_0_rgba(148,163,184,0.08)]"
     >
       <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">Total Threats</p>
-      <p class="mt-2 text-3xl font-bold text-red-400 tabular-nums">
+      <p class="mt-1 text-2xl font-bold text-red-400 tabular-nums">
         {{ state.totalThreatsCount() }}
       </p>
       <p class="mt-1 text-xs text-slate-500">Vectors detected or risk score ≥ 50</p>
     </article>
 
     <article
-      class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-5 shadow-[inset_0_1px_0_rgba(148,163,184,0.08)]"
+      class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-4 shadow-[inset_0_1px_0_rgba(148,163,184,0.08)]"
     >
       <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">Escalated Events</p>
-      <p class="mt-2 text-3xl font-bold text-amber-300 tabular-nums">
+      <p class="mt-1 text-2xl font-bold text-amber-300 tabular-nums">
         {{ state.escalatedCount() }}
       </p>
       <p class="mt-1 text-xs text-slate-500">Packets routed to SOC escalation lane</p>
     </article>
 
     <article
-      class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-5 shadow-[inset_0_1px_0_rgba(148,163,184,0.08)] sm:col-span-2 xl:col-span-1"
+      class="rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-4 shadow-[inset_0_1px_0_rgba(148,163,184,0.08)] sm:col-span-2 xl:col-span-1"
     >
       <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">Average Risk Score</p>
-      <p class="mt-2 text-3xl font-bold text-cyan-300 tabular-nums">
+      <p class="mt-1 text-2xl font-bold text-cyan-300 tabular-nums">
         {{ state.averageRiskScore() }}
       </p>
       <p class="mt-1 text-xs text-slate-500">Rolling mean across buffered window (50 max)</p>
     </article>
   </div>
 
-  <app-telemetry-table [events]="state.events()" />
+  <app-telemetry-table class="min-h-0 flex-1" [events]="state.events()" />
 </section>

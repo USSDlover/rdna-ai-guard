@@ -1,3 +1,10 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.dashboard-shell {
+  min-height: calc(100vh - 10rem);
 }

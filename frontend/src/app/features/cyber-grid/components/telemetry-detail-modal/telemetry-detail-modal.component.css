@@ -1,0 +1,23 @@
+:host {
+  display: contents;
+}
+
+.json-view :is(.json-key) {
+  color: #7dd3fc;
+}
+
+.json-view :is(.json-string) {
+  color: #86efac;
+}
+
+.json-view :is(.json-number) {
+  color: #fbbf24;
+}
+
+.json-view :is(.json-boolean) {
+  color: #c4b5fd;
+}
+
+.json-view :is(.json-null) {
+  color: #94a3b8;
+}

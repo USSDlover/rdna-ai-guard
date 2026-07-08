@@ -9,7 +9,9 @@ const MAX_EVENT_BUFFER = 50;
 export class CyberStateService {
   private readonly telemetryStream = inject(TelemetryStreamService);
 
-  readonly events = signal<TelemetryEvent[]>([]);
+  private readonly eventBuffer: TelemetryEvent[] = [];
+
+  readonly events = signal<readonly TelemetryEvent[]>([]);
 
   readonly totalThreatsCount = computed(
     () =>
@@ -39,6 +41,12 @@ export class CyberStateService {
   }
 
   private ingestEvent(event: TelemetryEvent): void {
-    this.events.update((current) => [event, ...current].slice(0, MAX_EVENT_BUFFER));
+    this.eventBuffer.unshift(event);
+
+    if (this.eventBuffer.length > MAX_EVENT_BUFFER) {
+      this.eventBuffer.length = MAX_EVENT_BUFFER;
+    }
+
+    this.events.set(Object.freeze([...this.eventBuffer]));
   }
 }

@@ -1,15 +1,17 @@
 <section
-  class="flex flex-col rounded-xl border border-slate-800 bg-slate-950/70 shadow-[0_0_30px_rgba(6,182,212,0.08)]"
+  class="telemetry-table-shell flex h-full min-h-80 overflow-clip flex-col rounded-xl border border-slate-800 bg-slate-950/70 shadow-[0_0_30px_rgba(6,182,212,0.08)]"
   aria-label="Live telemetry stream"
 >
   <header
-    class="flex items-center justify-between border-b border-slate-800 px-4 py-3"
+    class="flex shrink-0 items-center justify-between border-b border-slate-800 px-4 py-3"
   >
     <div>
       <h2 class="text-sm font-semibold tracking-wide text-cyan-300 uppercase">
         Live Telemetry Matrix
       </h2>
-      <p class="text-xs text-slate-400">SSE packets ingested in real time</p>
+      <p class="text-xs text-slate-400">
+        Virtualized stream · {{ events().length }} / 50 buffered packets
+      </p>
     </div>
     <span
       class="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300 ring-1 ring-cyan-500/30"
@@ -19,65 +21,58 @@
     </span>
   </header>
 
-  <div class="telemetry-table-body overflow-auto">
-    <table class="min-w-full text-left text-sm text-slate-200">
-      <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs tracking-wider text-slate-400 uppercase backdrop-blur">
-        <tr>
-          <th scope="col" class="px-4 py-3 font-medium">Timestamp</th>
-          <th scope="col" class="px-4 py-3 font-medium">Source IP</th>
-          <th scope="col" class="px-4 py-3 font-medium">Path</th>
-          <th scope="col" class="px-4 py-3 font-medium">Amount</th>
-          <th scope="col" class="px-4 py-3 font-medium">Account</th>
-          <th scope="col" class="px-4 py-3 font-medium">Risk</th>
-          <th scope="col" class="px-4 py-3 font-medium">Vector</th>
-          <th scope="col" class="px-4 py-3 font-medium">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        @if (!events().length) {
-          <tr>
-            <td colspan="8" class="px-4 py-10 text-center text-slate-500">
-              Awaiting telemetry packets from the ingestion gate…
-            </td>
-          </tr>
-        } @else {
-          @for (event of events(); track event.id) {
-            <tr
-              class="border-t border-slate-800/80 transition-colors hover:bg-slate-900/60"
-              [class]="rowClasses(event)"
-            >
-              <td class="px-4 py-3 whitespace-nowrap text-slate-300">
-                {{ event.timestamp | date: 'HH:mm:ss.SSS' }}
-              </td>
-              <td class="px-4 py-3 font-mono text-xs text-slate-200">{{ event.source_ip }}</td>
-              <td class="px-4 py-3 font-mono text-xs text-slate-400">{{ event.request_path }}</td>
-              <td class="px-4 py-3 whitespace-nowrap">
-                {{ event.transaction_amount | currency: 'USD' : 'symbol' : '1.2-2' }}
-              </td>
-              <td class="px-4 py-3 font-mono text-xs text-slate-400">{{ event.account_token }}</td>
-              <td class="px-4 py-3">
-                <span [class]="riskScoreClasses(event.risk_score)">{{ event.risk_score }}</span>
-              </td>
-              <td class="px-4 py-3">
-                <span
-                  class="rounded-full px-2 py-0.5 text-xs font-medium"
-                  [class]="vectorBadgeClasses(event)"
-                >
-                  {{ event.primary_vector }}
-                </span>
-              </td>
-              <td class="px-4 py-3">
-                <span
-                  class="rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase"
-                  [class]="statusBadgeClasses(event)"
-                >
-                  {{ event.status }}
-                </span>
-              </td>
-            </tr>
-          }
-        }
-      </tbody>
-    </table>
+  <div
+    class="telemetry-grid-header shrink-0 grid grid-cols-[minmax(7rem,1fr)_minmax(8rem,1.2fr)_minmax(10rem,1.6fr)_4rem_6.5rem] gap-3 border-b border-slate-800 bg-slate-900/95 px-4 py-3 text-xs font-medium tracking-wider text-slate-400 uppercase"
+    role="row"
+  >
+    <span role="columnheader">Timestamp</span>
+    <span role="columnheader">Source IP</span>
+    <span role="columnheader">Path</span>
+    <span role="columnheader">Risk</span>
+    <span role="columnheader">Status</span>
   </div>
+
+  @if (!hasEvents()) {
+    <div class="flex flex-1 items-center justify-center px-4 py-16 text-sm text-slate-500">
+      Awaiting telemetry packets from the ingestion gate…
+    </div>
+  } @else {
+    <cdk-virtual-scroll-viewport
+      class="telemetry-viewport min-h-0 flex-1"
+      [itemSize]="rowHeight"
+      role="rowgroup"
+    >
+      <div
+        *cdkVirtualFor="let event of events(); trackBy: trackByEventId"
+        class="telemetry-row grid cursor-pointer grid-cols-[minmax(7rem,1fr)_minmax(8rem,1.2fr)_minmax(10rem,1.6fr)_4rem_6.5rem] gap-3 border-b border-slate-800/70 px-4 py-3 text-sm text-slate-200 transition-colors"
+        [class]="rowClasses(event)"
+        role="row"
+        tabindex="0"
+        (click)="selectEvent(event)"
+        (keydown.enter)="selectEvent(event)"
+        (keydown.space)="selectEvent(event); $event.preventDefault()"
+      >
+        <span class="whitespace-nowrap text-slate-300" role="cell">
+          {{ event.timestamp | date: 'HH:mm:ss.SSS' }}
+        </span>
+        <span class="truncate font-mono text-xs text-slate-200" role="cell">
+          {{ event.source_ip }}
+        </span>
+        <span class="truncate font-mono text-xs text-slate-400" role="cell">
+          {{ event.request_path }}
+        </span>
+        <span [class]="riskScoreClasses(event)" role="cell">{{ event.risk_score }}</span>
+        <span role="cell">
+          <span
+            class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase"
+            [class]="statusBadgeClasses(event)"
+          >
+            {{ event.status }}
+          </span>
+        </span>
+      </div>
+    </cdk-virtual-scroll-viewport>
+  }
 </section>
+
+<app-telemetry-detail-modal [event]="selectedEvent()" (dismissed)="closeDetail()" />
