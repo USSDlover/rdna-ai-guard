@@ -4,14 +4,14 @@ import re
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 
+from app.ai.models import GemmaTriageResult, OllamaChatResponse
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Raised timeout threshold to prevent premature fallbacks during local inference
 OLLAMA_TIMEOUT_SECONDS = 120.0
-NARRATIVE_MAX_LENGTH = 200
 
 TRIAGE_SYSTEM_PROMPT = """You are a FinSec & Network Triage Analyst for RDNA AI Guard.
 
@@ -32,12 +32,14 @@ Rules:
 - triage_narrative must be factual, concise, and under 200 characters.
 """
 
-FALLBACK_TRIAGE: dict[str, Any] = {
-    "risk_score": 5,
-    "status": "PASSED",
-    "primary_vector": "NORMAL",
-    "triage_narrative": "Fallback: Local LLM unreachable",
-}
+FALLBACK_TRIAGE = GemmaTriageResult(
+    risk_score=5,
+    status="PASSED",
+    primary_vector="NORMAL",
+    triage_narrative="Fallback: Local LLM unreachable",
+)
+
+_JSON_OBJECT_PATTERN = re.compile(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", re.DOTALL)
 
 
 async def preload_gemma_model() -> None:
@@ -45,20 +47,20 @@ async def preload_gemma_model() -> None:
     url = f"{settings.OLLAMA_HOST.rstrip('/')}/api/chat"
     body = {
         "model": settings.GEMMA_MODEL,
-        "keep_alive": -1,  # Keeps model pinned in memory indefinitely
+        "keep_alive": -1,
     }
 
-    logger.info(f"⏳ Preloading {settings.GEMMA_MODEL} into memory...")
+    logger.info("Preloading %s into memory...", settings.GEMMA_MODEL)
     try:
         timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             res = await client.post(url, json=body)
             if res.status_code == 200:
-                logger.info(f"🚀 {settings.GEMMA_MODEL} successfully loaded and pinned in RAM/VRAM!")
+                logger.info("%s successfully loaded and pinned in memory.", settings.GEMMA_MODEL)
             else:
-                logger.warning(f"⚠️ Preload returned status {res.status_code}: {res.text}")
-    except Exception as e:
-        logger.error(f"❌ Failed to warm up model on startup: {e}")
+                logger.warning("Preload returned status %s: %s", res.status_code, res.text)
+    except Exception as exc:
+        logger.error("Failed to warm up model on startup: %s", exc)
 
 
 async def unload_gemma_model() -> None:
@@ -66,20 +68,20 @@ async def unload_gemma_model() -> None:
     url = f"{settings.OLLAMA_HOST.rstrip('/')}/api/chat"
     body = {
         "model": settings.GEMMA_MODEL,
-        "keep_alive": 0,  # Forces immediate eviction from memory
+        "keep_alive": 0,
     }
 
-    logger.info(f"🧹 Unloading {settings.GEMMA_MODEL} from VRAM/RAM...")
+    logger.info("Unloading %s from memory...", settings.GEMMA_MODEL)
     try:
         timeout = httpx.Timeout(connect=5.0, read=10.0, write=5.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             res = await client.post(url, json=body)
             if res.status_code == 200:
-                logger.info(f"✅ {settings.GEMMA_MODEL} successfully evicted from VRAM/RAM.")
+                logger.info("%s successfully evicted from memory.", settings.GEMMA_MODEL)
             else:
-                logger.warning(f"⚠️ Unload returned status {res.status_code}: {res.text}")
-    except Exception as e:
-        logger.error(f"❌ Failed to unload model during shutdown: {e}")
+                logger.warning("Unload returned status %s: %s", res.status_code, res.text)
+    except Exception as exc:
+        logger.error("Failed to unload model during shutdown: %s", exc)
 
 
 async def run_gemma_triage(payload_metadata: dict[str, Any]) -> dict[str, Any]:
@@ -95,15 +97,15 @@ async def run_gemma_triage(payload_metadata: dict[str, Any]) -> dict[str, Any]:
             {"role": "user", "content": prompt},
         ],
         "stream": False,
+        "think": False,
         "format": "json",
-        "keep_alive": "10m",  # Keeps model warm in memory between incoming calls
+        "keep_alive": "10m",
         "options": {
-            "temperature": 0.0,  # Fast, deterministic output
-            "num_predict": 200,   # Caps generation length to avoid runaway reasoning loops
+            "temperature": 0.0,
+            "num_predict": 512,
         },
     }
 
-    # Explicit HTTPX timeout configuration matching OLLAMA_TIMEOUT_SECONDS
     timeout = httpx.Timeout(
         connect=10.0,
         read=OLLAMA_TIMEOUT_SECONDS,
@@ -121,91 +123,91 @@ async def run_gemma_triage(payload_metadata: dict[str, Any]) -> dict[str, Any]:
             response_payload = response.json()
     except (httpx.HTTPError, httpx.TimeoutException) as exc:
         logger.warning("Ollama triage request failed: %s", exc)
-        return dict(FALLBACK_TRIAGE)
-
-    raw_content = _extract_response_content(response_payload)
-    if not raw_content:
-        logger.warning("Ollama triage response missing content: %s", response_payload)
-        return dict(FALLBACK_TRIAGE)
+        return FALLBACK_TRIAGE.model_dump()
 
     try:
-        parsed = json.loads(_sanitize_json_response(raw_content))
-    except json.JSONDecodeError as exc:
-        logger.warning("Ollama triage JSON decode failed: %s | raw=%s", exc, raw_content)
-        return dict(FALLBACK_TRIAGE)
+        chat_response = OllamaChatResponse.model_validate(response_payload)
+    except ValidationError as exc:
+        logger.warning("Ollama response schema mismatch: %s | payload=%s", exc, response_payload)
+        return FALLBACK_TRIAGE.model_dump()
 
-    return _normalize_triage_result(parsed)
+    triage = resolve_triage_from_ollama(chat_response)
+    if triage is None:
+        logger.warning(
+            "Ollama triage missing valid result fields: content=%r thinking=%r",
+            chat_response.message.content,
+            (chat_response.message.thinking or "")[:500],
+        )
+        return FALLBACK_TRIAGE.model_dump()
 
-
-def _extract_response_content(response_payload: dict[str, Any]) -> str:
-    message = response_payload.get("message")
-    if isinstance(message, dict):
-        content = message.get("content")
-        if isinstance(content, str):
-            return content
-
-    response_text = response_payload.get("response")
-    if isinstance(response_text, str):
-        return response_text
-
-    return ""
+    return triage.model_dump()
 
 
-def _sanitize_json_response(raw_text: str) -> str:
+def resolve_triage_from_ollama(response: OllamaChatResponse) -> GemmaTriageResult | None:
+    """
+    Gemma 4 often returns incomplete JSON in `message.content` while the complete
+    verdict sits inside a fenced JSON block in `message.thinking`.
+
+    Prefer a fully valid content payload when present; otherwise extract from thinking.
+    """
+    message = response.message
+    content_candidates = extract_triage_candidates(message.content)
+    if content_candidates:
+        return content_candidates[-1]
+
+    thinking_text = "\n".join(
+        part for part in (message.thinking, message.reasoning) if part
+    )
+    thinking_candidates = extract_triage_candidates(thinking_text)
+    if thinking_candidates:
+        return thinking_candidates[-1]
+
+    return None
+
+
+def extract_triage_candidates(raw_text: str | None) -> list[GemmaTriageResult]:
+    if not raw_text or not raw_text.strip():
+        return []
+
+    results: list[GemmaTriageResult] = []
+    for blob in iter_json_blobs(raw_text):
+        try:
+            parsed = json.loads(blob)
+        except json.JSONDecodeError:
+            continue
+
+        try:
+            results.append(GemmaTriageResult.model_validate(parsed))
+        except ValidationError:
+            continue
+
+    return results
+
+
+def iter_json_blobs(raw_text: str) -> list[str]:
     cleaned = raw_text.strip()
 
     if cleaned.startswith("```"):
         cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r"\s*```$", "", cleaned)
+        cleaned = cleaned.strip()
 
-    return cleaned.strip()
+    blobs: list[str] = []
 
-
-def _normalize_triage_result(parsed: Any) -> dict[str, Any]:
-    if not isinstance(parsed, dict):
-        return dict(FALLBACK_TRIAGE)
-
-    risk_score = _coerce_risk_score(parsed.get("risk_score"))
-    status = _coerce_status(parsed.get("status"))
-    primary_vector = _coerce_primary_vector(parsed.get("primary_vector"))
-    triage_narrative = _coerce_narrative(parsed.get("triage_narrative"))
-
-    return {
-        "risk_score": risk_score,
-        "status": status,
-        "primary_vector": primary_vector,
-        "triage_narrative": triage_narrative,
-    }
-
-
-def _coerce_risk_score(value: Any) -> int:
     try:
-        score = int(value)
-    except (TypeError, ValueError):
-        return int(FALLBACK_TRIAGE["risk_score"])
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, dict):
+            blobs.append(cleaned)
+            return blobs
+    except json.JSONDecodeError:
+        pass
 
-    return max(0, min(100, score))
+    for match in re.finditer(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", raw_text, flags=re.IGNORECASE):
+        blobs.append(match.group(1).strip())
 
+    for match in _JSON_OBJECT_PATTERN.finditer(raw_text):
+        candidate = match.group(0).strip()
+        if candidate not in blobs:
+            blobs.append(candidate)
 
-def _coerce_status(value: Any) -> str:
-    if isinstance(value, str) and value.upper() == "ESCALATED":
-        return "ESCALATED"
-    return "PASSED"
-
-
-def _coerce_primary_vector(value: Any) -> str:
-    if not isinstance(value, str):
-        return str(FALLBACK_TRIAGE["primary_vector"])
-
-    normalized = value.upper()
-    if normalized in {"CYBER", "FRAUD", "NORMAL"}:
-        return normalized
-
-    return str(FALLBACK_TRIAGE["primary_vector"])
-
-
-def _coerce_narrative(value: Any) -> str:
-    if not isinstance(value, str) or not value.strip():
-        return str(FALLBACK_TRIAGE["triage_narrative"])
-
-    return value.strip()[:NARRATIVE_MAX_LENGTH]
+    return blobs
