@@ -7,11 +7,18 @@ from app.core.config import settings
 from app.core.db import init_db
 from app.network import router as network_router
 
+from app.ai.ollama_client import preload_gemma_model, unload_gemma_model
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await init_db()
-    yield
+    await init_db()# 1. Runs when backend boots up
+    await preload_gemma_model()
+
+    yield  # Application handles incoming HTTP requests
+
+    # 2. Runs when backend stops (e.g., Ctrl+C or Docker shutdown)
+    await unload_gemma_model()
 
 
 app = FastAPI(

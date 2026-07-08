@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.ollama_client import run_gemma_triage
 from app.core.config import settings
 from app.core.db import async_session_factory, get_async_session
 from app.core.events import broadcast_manager
@@ -21,14 +22,6 @@ from app.models.schemas import (
 from app.services.telemetry_service import get_recent_telemetry, save_telemetry_event
 
 router = APIRouter(prefix="/telemetry", tags=["Telemetry"])
-
-DANGEROUS_IP_PREFIXES: tuple[str, ...] = (
-    "10.0.0.",
-    "45.33.",
-    "185.",
-    "203.0.113.",
-    "198.51.100.",
-)
 
 CLEAN_SOURCE_IPS: tuple[str, ...] = (
     "172.16.42.10",
@@ -66,74 +59,12 @@ def _utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _assess_risk(
-    source_ip: str,
-    transaction_amount: float,
-) -> tuple[int, PrimaryVector, TelemetryStatus]:
-    risk_score = 8
-    primary_vector: PrimaryVector = "NONE"
-    status: TelemetryStatus = "PASSED"
-
-    if transaction_amount > 5000:
-        excess = transaction_amount - 5000
-        risk_score = min(100, 62 + int(excess / 250))
-        primary_vector = "FRAUD"
-        status = "ESCALATED"
-
-    if source_ip.startswith(DANGEROUS_IP_PREFIXES):
-        risk_score = max(risk_score, 88)
-        primary_vector = "CYBER" if primary_vector == "NONE" else primary_vector
-        status = "ESCALATED"
-
-    if transaction_amount > 10000 and source_ip.startswith(DANGEROUS_IP_PREFIXES):
-        risk_score = 97
-        primary_vector = "FRAUD"
-        status = "ESCALATED"
-
-    return risk_score, primary_vector, status
-
-
-def _build_routing_narrative(
-    risk_score: int,
-    primary_vector: PrimaryVector,
-    status: TelemetryStatus,
-    source_ip: str,
-    transaction_amount: float,
-) -> str:
-    if status == "PASSED":
-        return (
-            f"Telemetry triage complete. Transaction from {source_ip} for "
-            f"${transaction_amount:,.2f} assessed as low risk (score {risk_score}). "
-            "Route to standard ingestion pipeline. No escalation required."
-        )
-
-    vector_label = "cyber-intrusion" if primary_vector == "CYBER" else "financial fraud"
-    return (
-        f"ESCALATION REQUIRED: {vector_label.upper()} indicators detected from {source_ip}. "
-        f"Amount ${transaction_amount:,.2f}, composite risk score {risk_score}/100. "
-        "Recommend immediate SOC handoff and transaction hold."
-    )
-
-
-def _build_telemetry_event(
-    *,
-    source_ip: str,
-    request_path: str,
-    transaction_amount: float,
-    account_token: str,
-) -> TelemetryEvent:
-    risk_score, primary_vector, status = _assess_risk(source_ip, transaction_amount)
-    return TelemetryEvent(
-        id=str(uuid4()),
-        timestamp=_utc_iso(),
-        source_ip=source_ip,
-        request_path=request_path,
-        transaction_amount=transaction_amount,
-        account_token=account_token,
-        risk_score=risk_score,
-        primary_vector=primary_vector,
-        status=status,
-    )
+def _map_primary_vector(vector: str) -> PrimaryVector:
+    if vector == "CYBER":
+        return "CYBER"
+    if vector == "FRAUD":
+        return "FRAUD"
+    return "NONE"
 
 
 def _build_clean_event(sequence: int) -> TelemetryEvent:
@@ -228,26 +159,30 @@ async def triage_telemetry(
     payload: TelemetryTriageRequest,
     session: AsyncSession = Depends(get_async_session),
 ) -> TelemetryTriageResponse:
-    telemetry = _build_telemetry_event(
+    payload_data = payload.model_dump()
+    triage_result = await run_gemma_triage(payload_data)
+
+    narrative = str(triage_result["triage_narrative"])
+    primary_vector = _map_primary_vector(str(triage_result["primary_vector"]))
+    status: TelemetryStatus = (
+        "ESCALATED" if triage_result["status"] == "ESCALATED" else "PASSED"
+    )
+
+    telemetry = TelemetryEvent(
+        id=str(uuid4()),
+        timestamp=_utc_iso(),
         source_ip=payload.source_ip,
         request_path=payload.request_path,
         transaction_amount=payload.transaction_amount,
         account_token=payload.account_token,
-    )
-
-    narrative = _build_routing_narrative(
-        risk_score=telemetry.risk_score,
-        primary_vector=telemetry.primary_vector,
-        status=telemetry.status,
-        source_ip=telemetry.source_ip,
-        transaction_amount=telemetry.transaction_amount,
-    )
-
-    persisted = await _persist_and_broadcast(
-        telemetry,
-        session,
+        risk_score=int(triage_result["risk_score"]),
+        primary_vector=primary_vector,
+        status=status,
+        payload_metadata=payload_data,
         triage_narrative=narrative,
     )
+
+    persisted = await _persist_and_broadcast(telemetry, session)
 
     return TelemetryTriageResponse(
         model=settings.GEMMA_MODEL,
