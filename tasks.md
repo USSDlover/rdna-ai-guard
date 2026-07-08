@@ -102,3 +102,4 @@ The workspace is complete when a live packet payload target dropped into the bac
 ## Bugs
 
 1. FE when switching between dashboards, the table is not loading the data.
+2. Ability to clear the log
