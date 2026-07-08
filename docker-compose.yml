@@ -1,4 +1,24 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rdna-guard-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: guard_password
+      POSTGRES_DB: rdna_guard
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rdna_guard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rdna-network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -7,10 +27,14 @@ services:
     ports:
       - "8000:8000"
     environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:guard_password@postgres:5432/rdna_guard
       OLLAMA_HOST: http://host.docker.internal:11434
       GEMMA_MODEL: gemma4:12b
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - rdna-network
     restart: unless-stopped
@@ -27,6 +51,10 @@ services:
     networks:
       - rdna-network
     restart: unless-stopped
+
+volumes:
+  pgdata:
+    name: rdna-pgdata
 
 networks:
   rdna-network:

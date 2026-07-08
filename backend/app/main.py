@@ -1,13 +1,24 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.db import init_db
 from app.network import router as network_router
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await init_db()
+    yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Tactical FinSec Telemetry Routing Engine",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
