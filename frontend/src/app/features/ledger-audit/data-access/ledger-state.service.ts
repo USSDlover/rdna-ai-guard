@@ -1,17 +1,12 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
 
-import { TelemetryStreamService } from '../../../core/services/telemetry-stream.service';
-import { TelemetryEvent } from '../../../core/models/telemetry-event.model';
+import { TelemetryStateService } from '../../../core/services/telemetry-state.service';
 
-const MAX_EVENT_BUFFER = 50;
-
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class LedgerStateService {
-  private readonly telemetryStream = inject(TelemetryStreamService);
+  private readonly telemetryState = inject(TelemetryStateService);
 
-  private readonly eventBuffer: TelemetryEvent[] = [];
-
-  readonly events = signal<readonly TelemetryEvent[]>([]);
+  readonly events = this.telemetryState.events;
 
   readonly fraudEvents = computed(() =>
     this.events().filter(
@@ -36,20 +31,4 @@ export class LedgerStateService {
     const total = snapshot.reduce((sum, event) => sum + event.transaction_amount, 0);
     return Math.round((total / snapshot.length) * 100) / 100;
   });
-
-  constructor() {
-    this.telemetryStream.streamForLifecycle().subscribe((event) => {
-      this.ingestEvent(event);
-    });
-  }
-
-  private ingestEvent(event: TelemetryEvent): void {
-    this.eventBuffer.unshift(event);
-
-    if (this.eventBuffer.length > MAX_EVENT_BUFFER) {
-      this.eventBuffer.length = MAX_EVENT_BUFFER;
-    }
-
-    this.events.set(Object.freeze([...this.eventBuffer]));
-  }
 }

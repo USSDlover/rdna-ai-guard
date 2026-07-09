@@ -6,7 +6,6 @@ import { TelemetryTableComponent } from '../telemetry-table/telemetry-table.comp
 @Component({
   selector: 'app-cyber-grid-dashboard',
   imports: [TelemetryTableComponent],
-  providers: [CyberStateService],
   templateUrl: './cyber-grid-dashboard.component.html',
   styleUrl: './cyber-grid-dashboard.component.css',
 })

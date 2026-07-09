@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
+import { TelemetryStateService } from '../../core/services/telemetry-state.service';
 import { GlobalThreatToastComponent } from '../../shared/components/global-threat-toast/global-threat-toast.component';
 
 interface NavItem {
@@ -17,6 +18,9 @@ interface NavItem {
   styleUrl: './dashboard-shell.component.css',
 })
 export class DashboardShellComponent {
+  /** Eagerly attach the shared telemetry buffer for all child dashboard routes. */
+  private readonly telemetryState = inject(TelemetryStateService);
+
   protected readonly navItems = signal<NavItem[]>([
     {
       label: 'Cyber Grid Security',

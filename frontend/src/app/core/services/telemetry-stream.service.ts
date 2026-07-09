@@ -1,18 +1,18 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, Subject } from 'rxjs';
+import { ReplaySubject } from 'rxjs';
 
 import { TelemetryEvent } from '../models/telemetry-event.model';
 
 const TELEMETRY_STREAM_URL = 'http://127.0.0.1:8000/api/v1/telemetry/stream';
+const REPLAY_BUFFER_SIZE = 50;
 
 @Injectable({ providedIn: 'root' })
 export class TelemetryStreamService {
   private readonly destroyRef = inject(DestroyRef);
-  private readonly telemetrySubject = new Subject<TelemetryEvent>();
+  private readonly telemetrySubject = new ReplaySubject<TelemetryEvent>(REPLAY_BUFFER_SIZE);
   private eventSource: EventSource | null = null;
 
-  readonly telemetry$: Observable<TelemetryEvent> = this.telemetrySubject.asObservable();
+  readonly telemetry$ = this.telemetrySubject.asObservable();
 
   constructor() {
     this.connect();
@@ -47,9 +47,5 @@ export class TelemetryStreamService {
   private disconnect(): void {
     this.eventSource?.close();
     this.eventSource = null;
-  }
-
-  streamForLifecycle(): Observable<TelemetryEvent> {
-    return this.telemetry$.pipe(takeUntilDestroyed(this.destroyRef));
   }
 }

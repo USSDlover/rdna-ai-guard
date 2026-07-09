@@ -8,7 +8,6 @@ import { LedgerChartComponent } from '../ledger-chart/ledger-chart.component';
 @Component({
   selector: 'app-ledger-dashboard',
   imports: [CurrencyPipe, DatePipe, LedgerChartComponent],
-  providers: [LedgerStateService],
   templateUrl: './ledger-dashboard.component.html',
   styleUrl: './ledger-dashboard.component.css',
 })
