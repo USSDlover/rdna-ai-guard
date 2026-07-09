@@ -176,6 +176,8 @@ async def _execute_cloud_escalation(
 
             metadata = dict(event.payload_metadata or {})
             metadata["cloud_escalation"] = {
+                "provider": "fireworks" if settings.FIREWORKS_API_KEY.strip() else "mock",
+                "model": settings.FIREWORKS_MODEL,
                 "cyber_analysis": final_state.get("cyber_analysis"),
                 "cyber_score": cyber_score,
                 "fraud_analysis": final_state.get("fraud_analysis"),
