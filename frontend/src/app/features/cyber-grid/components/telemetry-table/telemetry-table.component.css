@@ -3,6 +3,7 @@
 }
 
 .telemetry-table-body {
-  min-height: 28rem;
-  max-height: min(70vh, 48rem);
+  height: 500px;
+  max-height: 500px;
+  overflow-y: scroll;
 }
