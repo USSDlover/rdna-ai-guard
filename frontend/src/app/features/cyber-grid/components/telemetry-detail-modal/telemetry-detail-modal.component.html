@@ -5,7 +5,7 @@
     (click)="onBackdropClick($event)"
   >
     <section
-      class="modal-panel flex max-h-[min(90vh,52rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-[0_0_60px_rgba(239,68,68,0.12)]"
+      class="modal-panel flex max-h-[min(92vh,56rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-[0_0_60px_rgba(239,68,68,0.12)]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="telemetry-detail-title"
@@ -13,19 +13,29 @@
       <header
         class="flex items-start justify-between gap-4 border-b border-slate-800 px-6 py-4"
       >
-        <div class="min-w-0 space-y-1">
+        <div class="min-w-0 space-y-2">
           <p class="text-xs font-semibold tracking-[0.2em] text-cyan-400 uppercase">
             Packet Inspection
           </p>
           <h2 id="telemetry-detail-title" class="truncate text-lg font-semibold text-slate-100">
             Telemetry Event {{ selectedEvent.id }}
           </h2>
-          <p class="text-sm text-slate-400">
-            Source
-            <span class="font-mono text-slate-200">{{ selectedEvent.source_ip }}</span>
-            · Status
-            <span class="font-semibold" [class]="statusTone()">{{ selectedEvent.status }}</span>
-          </p>
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            <span
+              class="rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide uppercase ring-1"
+              [class]="vectorTone()"
+            >
+              {{ selectedEvent.primary_vector }}
+            </span>
+            <span class="text-slate-400">
+              Risk
+              <span class="font-semibold text-slate-100">{{ selectedEvent.risk_score }}</span>
+            </span>
+            <span class="text-slate-400">
+              Status
+              <span class="font-semibold" [class]="statusTone()">{{ selectedEvent.status }}</span>
+            </span>
+          </div>
         </div>
 
         <button
@@ -38,13 +48,106 @@
         </button>
       </header>
 
-      <div class="min-h-0 flex-1 overflow-auto px-6 py-4">
-        <p class="mb-3 text-xs font-medium tracking-wide text-slate-500 uppercase">
-          Full JSON Configuration Packet
-        </p>
-        <pre
-          class="json-view overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm leading-relaxed text-slate-200"
-        ><code [innerHTML]="highlightedJson()"></code></pre>
+      <div class="min-h-0 flex-1 space-y-5 overflow-auto px-6 py-4">
+        <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <article class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-[10px] font-medium tracking-wide text-slate-500 uppercase">Timestamp</p>
+            <p class="mt-1 text-sm text-slate-200">
+              {{ selectedEvent.timestamp | date: 'HH:mm:ss.SSS' }}
+            </p>
+          </article>
+          <article class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-[10px] font-medium tracking-wide text-slate-500 uppercase">Source IP</p>
+            <p class="mt-1 font-mono text-sm text-cyan-200">{{ selectedEvent.source_ip }}</p>
+          </article>
+          <article class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-[10px] font-medium tracking-wide text-slate-500 uppercase">Path</p>
+            <p class="mt-1 truncate font-mono text-sm text-slate-300">
+              {{ selectedEvent.request_path }}
+            </p>
+          </article>
+          <article class="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-[10px] font-medium tracking-wide text-slate-500 uppercase">Amount</p>
+            <p class="mt-1 text-sm font-semibold text-amber-200">
+              {{ selectedEvent.transaction_amount | currency: 'USD' : 'symbol' : '1.2-2' }}
+            </p>
+          </article>
+        </section>
+
+        @if (selectedEvent.triage_narrative) {
+          <section class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <p class="mb-2 text-xs font-semibold tracking-wide text-cyan-400 uppercase">
+              Local Triage (Gemma)
+            </p>
+            <p class="text-sm leading-relaxed text-slate-300">{{ selectedEvent.triage_narrative }}</p>
+          </section>
+        }
+
+        @if (cloudEscalation(); as cloud) {
+          <section
+            class="rounded-xl border border-amber-500/30 bg-gradient-to-br from-slate-950 to-amber-950/20 p-4"
+          >
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p class="text-xs font-semibold tracking-wide text-amber-300 uppercase">
+                Cloud Multi-Agent Escalation
+              </p>
+              @if (providerLabel(); as provider) {
+                <span
+                  class="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-medium text-amber-200 ring-1 ring-amber-500/30"
+                >
+                  {{ provider }}
+                </span>
+              }
+            </div>
+
+            @if (cloud.synthesized_narrative) {
+              <p class="mb-4 text-sm leading-relaxed text-slate-200">
+                {{ cloud.synthesized_narrative }}
+              </p>
+            }
+
+            <div class="grid gap-3 md:grid-cols-2">
+              <article class="rounded-lg border border-cyan-500/20 bg-slate-900/80 p-3">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                  <p class="text-[10px] font-semibold tracking-wide text-cyan-400 uppercase">
+                    CyberSec Specialist
+                  </p>
+                  <span class="text-sm font-bold text-cyan-300">{{ cloud.cyber_score ?? '—' }}</span>
+                </div>
+                <p class="text-xs leading-relaxed text-slate-400">
+                  {{ cloud.cyber_analysis || 'No cyber analysis recorded.' }}
+                </p>
+              </article>
+
+              <article class="rounded-lg border border-amber-500/20 bg-slate-900/80 p-3">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                  <p class="text-[10px] font-semibold tracking-wide text-amber-400 uppercase">
+                    Anti-Fraud Specialist
+                  </p>
+                  <span class="text-sm font-bold text-amber-300">{{ cloud.fraud_score ?? '—' }}</span>
+                </div>
+                <p class="text-xs leading-relaxed text-slate-400">
+                  {{ cloud.fraud_analysis || 'No fraud analysis recorded.' }}
+                </p>
+              </article>
+            </div>
+          </section>
+        } @else if (selectedEvent.status === 'ESCALATED') {
+          <section
+            class="rounded-xl border border-dashed border-slate-700 bg-slate-950/40 p-4 text-sm text-slate-500"
+          >
+            Cloud escalation analysis pending or unavailable for this event.
+          </section>
+        }
+
+        <section>
+          <p class="mb-3 text-xs font-medium tracking-wide text-slate-500 uppercase">
+            Full JSON Configuration Packet
+          </p>
+          <pre
+            class="json-view overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm leading-relaxed text-slate-200"
+          ><code [innerHTML]="highlightedJson()"></code></pre>
+        </section>
       </div>
 
       <footer class="flex justify-end border-t border-slate-800 px-6 py-4">

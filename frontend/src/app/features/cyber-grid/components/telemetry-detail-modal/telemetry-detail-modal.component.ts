@@ -1,4 +1,4 @@
-import { DOCUMENT } from '@angular/common';
+import { CurrencyPipe, DatePipe, DOCUMENT } from '@angular/common';
 import {
   Component,
   computed,
@@ -10,10 +10,14 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
-import { TelemetryEvent } from '../../../../core/models/telemetry-event.model';
+import {
+  CloudEscalation,
+  TelemetryEvent,
+} from '../../../../core/models/telemetry-event.model';
 
 @Component({
   selector: 'app-telemetry-detail-modal',
+  imports: [CurrencyPipe, DatePipe],
   templateUrl: './telemetry-detail-modal.component.html',
   styleUrl: './telemetry-detail-modal.component.css',
 })
@@ -24,6 +28,11 @@ export class TelemetryDetailModalComponent {
   readonly event = input.required<TelemetryEvent | null>();
 
   readonly dismissed = output<void>();
+
+  protected readonly cloudEscalation = computed<CloudEscalation | null>(() => {
+    const selected = this.event();
+    return selected?.payload_metadata?.cloud_escalation ?? null;
+  });
 
   protected readonly highlightedJson = computed<SafeHtml>(() => {
     const selected = this.event();
@@ -42,6 +51,33 @@ export class TelemetryDetailModalComponent {
     }
 
     return selected.status === 'ESCALATED' ? 'text-red-300' : 'text-emerald-300';
+  });
+
+  protected readonly vectorTone = computed(() => {
+    const selected = this.event();
+    if (!selected) {
+      return 'bg-slate-700/60 text-slate-300';
+    }
+
+    switch (selected.primary_vector) {
+      case 'CYBER':
+        return 'bg-cyan-500/20 text-cyan-300 ring-cyan-500/40';
+      case 'FRAUD':
+        return 'bg-amber-500/20 text-amber-300 ring-amber-500/40';
+      default:
+        return 'bg-slate-700/60 text-slate-300 ring-slate-600/50';
+    }
+  });
+
+  protected readonly providerLabel = computed(() => {
+    const cloud = this.cloudEscalation();
+    if (!cloud?.provider) {
+      return null;
+    }
+
+    return cloud.provider === 'fireworks'
+      ? `Fireworks AI${cloud.model ? ` · ${cloud.model}` : ''}`
+      : 'Mock cloud agent (offline)';
   });
 
   private readonly escapeListenerAttached = signal(false);

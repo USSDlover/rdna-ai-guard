@@ -102,7 +102,7 @@
           } @else {
             @for (event of state.fraudEvents(); track event.id) {
               <tr
-                class="border-t border-slate-800/80 transition-colors hover:bg-slate-900/60"
+                class="cursor-pointer border-t border-slate-800/80 transition-colors hover:bg-slate-900/60"
                 [class]="
                   event.status === 'ESCALATED'
                     ? 'bg-red-950/20'
@@ -110,6 +110,10 @@
                       ? 'bg-amber-950/15'
                       : 'bg-slate-900/40'
                 "
+                tabindex="0"
+                (click)="selectEvent(event)"
+                (keydown.enter)="selectEvent(event)"
+                (keydown.space)="selectEvent(event); $event.preventDefault()"
               >
                 <td class="px-4 py-3 whitespace-nowrap text-slate-300">
                   {{ event.timestamp | date: 'HH:mm:ss.SSS' }}
@@ -138,4 +142,6 @@
       </table>
     </div>
   </section>
+
+  <app-telemetry-detail-modal [event]="selectedEvent()" (dismissed)="closeDetail()" />
 </section>

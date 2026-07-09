@@ -16,7 +16,16 @@ const ROW_HEIGHT_PX = 52;
 export class TelemetryTableComponent {
   readonly events = input.required<readonly TelemetryEvent[]>();
 
-  protected readonly selectedEvent = signal<TelemetryEvent | null>(null);
+  protected readonly selectedEventId = signal<string | null>(null);
+
+  protected readonly selectedEvent = computed(() => {
+    const eventId = this.selectedEventId();
+    if (!eventId) {
+      return null;
+    }
+
+    return this.events().find((event) => event.id === eventId) ?? null;
+  });
 
   protected readonly rowHeight = ROW_HEIGHT_PX;
 
@@ -69,11 +78,11 @@ export class TelemetryTableComponent {
   });
 
   protected selectEvent(event: TelemetryEvent): void {
-    this.selectedEvent.set(event);
+    this.selectedEventId.set(event.id);
   }
 
   protected closeDetail(): void {
-    this.selectedEvent.set(null);
+    this.selectedEventId.set(null);
   }
 
   protected trackByEventId(_index: number, event: TelemetryEvent): string {

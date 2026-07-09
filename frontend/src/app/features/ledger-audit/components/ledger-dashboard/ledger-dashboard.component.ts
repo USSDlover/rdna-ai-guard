@@ -1,18 +1,30 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 
-import { LedgerStateService } from '../../data-access/ledger-state.service';
 import { TelemetryEvent } from '../../../../core/models/telemetry-event.model';
+import { TelemetryDetailModalComponent } from '../../../cyber-grid/components/telemetry-detail-modal/telemetry-detail-modal.component';
+import { LedgerStateService } from '../../data-access/ledger-state.service';
 import { LedgerChartComponent } from '../ledger-chart/ledger-chart.component';
 
 @Component({
   selector: 'app-ledger-dashboard',
-  imports: [CurrencyPipe, DatePipe, LedgerChartComponent],
+  imports: [CurrencyPipe, DatePipe, LedgerChartComponent, TelemetryDetailModalComponent],
   templateUrl: './ledger-dashboard.component.html',
   styleUrl: './ledger-dashboard.component.css',
 })
 export class LedgerDashboardComponent {
   protected readonly state = inject(LedgerStateService);
+
+  protected readonly selectedEventId = signal<string | null>(null);
+
+  protected readonly selectedEvent = computed(() => {
+    const eventId = this.selectedEventId();
+    if (!eventId) {
+      return null;
+    }
+
+    return this.state.events().find((event) => event.id === eventId) ?? null;
+  });
 
   protected readonly statusBadgeById = computed(() => {
     const badges = new Map<string, string>();
@@ -54,5 +66,13 @@ export class LedgerDashboardComponent {
 
   protected riskScoreClasses(event: TelemetryEvent): string {
     return this.riskToneById().get(event.id) ?? 'text-slate-300';
+  }
+
+  protected selectEvent(event: TelemetryEvent): void {
+    this.selectedEventId.set(event.id);
+  }
+
+  protected closeDetail(): void {
+    this.selectedEventId.set(null);
   }
 }
