@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     OLLAMA_HOST: str = "http://localhost:11434"
     GEMMA_MODEL: str = "gemma4:12b"
+    FIREWORKS_API_KEY: str = ""
+    FIREWORKS_MODEL: str = "accounts/fireworks/models/glm-5p2"
     DATABASE_URL: str = (
         "postgresql+asyncpg://postgres:guard_password@localhost:5432/rdna_guard"
     )

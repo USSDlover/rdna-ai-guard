@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import random
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -7,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.graph import run_escalation_analysis
 from app.ai.ollama_client import run_gemma_triage
 from app.core.config import settings
 from app.core.db import async_session_factory, get_async_session
@@ -19,7 +21,14 @@ from app.models.schemas import (
     TelemetryTriageRequest,
     TelemetryTriageResponse,
 )
-from app.services.telemetry_service import get_recent_telemetry, save_telemetry_event
+from app.services.telemetry_service import (
+    get_recent_telemetry,
+    get_telemetry_event_by_id,
+    save_telemetry_event,
+    update_telemetry_event,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/telemetry", tags=["Telemetry"])
 
@@ -129,6 +138,66 @@ async def _persist_and_broadcast(
     return persisted
 
 
+def _resolve_primary_vector(cyber_score: int, fraud_score: int) -> PrimaryVector:
+    if cyber_score == 0 and fraud_score == 0:
+        return "NONE"
+    if cyber_score >= fraud_score:
+        return "CYBER"
+    return "FRAUD"
+
+
+async def _execute_cloud_escalation(
+    event_id: str,
+    telemetry_data: dict[str, object],
+    local_triage: dict[str, object],
+) -> None:
+    logger.info("Starting cloud escalation workflow for event %s", event_id)
+
+    try:
+        final_state = await run_escalation_analysis(telemetry_data, local_triage)
+    except Exception:
+        logger.exception("Cloud escalation graph failed for event %s", event_id)
+        return
+
+    try:
+        async with async_session_factory() as session:
+            event = await get_telemetry_event_by_id(event_id, session)
+            if event is None:
+                logger.warning("Cloud escalation could not find event %s", event_id)
+                return
+
+            cyber_score = int(final_state.get("cyber_score", 0))
+            fraud_score = int(final_state.get("fraud_score", 0))
+            final_status: TelemetryStatus = (
+                "ESCALATED"
+                if str(final_state.get("final_status", "ESCALATED")).upper() == "ESCALATED"
+                else "PASSED"
+            )
+
+            metadata = dict(event.payload_metadata or {})
+            metadata["cloud_escalation"] = {
+                "cyber_analysis": final_state.get("cyber_analysis"),
+                "cyber_score": cyber_score,
+                "fraud_analysis": final_state.get("fraud_analysis"),
+                "fraud_score": fraud_score,
+                "synthesized_narrative": final_state.get("synthesized_narrative"),
+            }
+
+            event.triage_narrative = str(
+                final_state.get("synthesized_narrative") or event.triage_narrative
+            )
+            event.risk_score = int(final_state.get("final_risk_score", event.risk_score))
+            event.status = final_status
+            event.primary_vector = _resolve_primary_vector(cyber_score, fraud_score)
+            event.payload_metadata = metadata
+
+            enriched = await update_telemetry_event(event, session)
+            await broadcast_manager.publish(enriched)
+            logger.info("Cloud escalation complete for event %s", event_id)
+    except Exception:
+        logger.exception("Cloud escalation persistence failed for event %s", event_id)
+
+
 async def _replay_recent_events() -> list[TelemetryEvent]:
     async with async_session_factory() as session:
         recent_events = await get_recent_telemetry(session, limit=50)
@@ -183,6 +252,15 @@ async def triage_telemetry(
     )
 
     persisted = await _persist_and_broadcast(telemetry, session)
+
+    if persisted.status == "ESCALATED":
+        asyncio.create_task(
+            _execute_cloud_escalation(
+                persisted.id,
+                payload_data,
+                triage_result,
+            )
+        )
 
     return TelemetryTriageResponse(
         model=settings.GEMMA_MODEL,
