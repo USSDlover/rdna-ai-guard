@@ -25,6 +25,13 @@ export const routes: Routes = [
             './features/cyber-grid/components/cyber-grid-dashboard/cyber-grid-dashboard.component'
           ).then((m) => m.CyberGridDashboardComponent),
       },
+      {
+        path: 'ledger-audit',
+        loadComponent: () =>
+          import(
+            './features/ledger-audit/components/ledger-dashboard/ledger-dashboard.component'
+          ).then((m) => m.LedgerDashboardComponent),
+      },
     ],
   },
 ];
