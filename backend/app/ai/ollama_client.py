@@ -102,7 +102,7 @@ async def run_gemma_triage(payload_metadata: dict[str, Any]) -> dict[str, Any]:
         "keep_alive": "10m",
         "options": {
             "temperature": 0.0,
-            "num_predict": 512,
+            "num_predict": 1000,
         },
     }
 

@@ -12,7 +12,7 @@ from app.ai.ollama_client import preload_gemma_model, unload_gemma_model
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await init_db()# 1. Runs when backend boots up
+    await init_db()  # 1. Runs when backend boots up
     await preload_gemma_model()
 
     yield  # Application handles incoming HTTP requests
