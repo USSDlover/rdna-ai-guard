@@ -1,9 +1,10 @@
+import json
 import sys
 import time
 import httpx
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL_NAME = "gemma4:12b"  # or gemma4:31b
+MODEL_NAME = "gemma4:12b"
 
 payload = {
     "model": MODEL_NAME,
@@ -19,22 +20,20 @@ payload = {
     ],
     "format": "json",
     "stream": False,
-    # Keeps the model pre-loaded in memory for 10 minutes to avoid repeated cold-start delays
     "keep_alive": "10m",
 }
 
 
 def run_test():
-    print("=" * 65)
-    print(f"🔍 [1/2] Testing Direct Ollama Connection ({MODEL_NAME})")
-    print("=" * 65)
+    print("=" * 75)
+    print(f"🔍 [Diagnostic] Testing Direct Ollama Connection & Schema Mapping ({MODEL_NAME})")
+    print("=" * 75)
     print(f"📡 Target URL: {OLLAMA_URL}")
-    print("⏳ Waiting for Gemma 4 to load into memory & generate response...\n")
+    print("⏳ Waiting for raw Ollama API payload... This might take some time.\n")
 
-    # Grant up to 180s for model loading + inference thinking
     custom_timeout = httpx.Timeout(
-        connect=10.0,   # Max time to open connection to Ollama
-        read=180.0,     # Max time to wait for model to return complete JSON
+        connect=10.0,
+        read=180.0,
         write=10.0,
         pool=10.0
     )
@@ -45,14 +44,24 @@ def run_test():
         elapsed = time.time() - start_time
 
         if response.status_code == 200:
-            data = response.json()
-            content = data.get("message", {}).get("content", "{}")
+            raw_data = response.json()
 
             print(f"✅ SUCCESS ({elapsed:.2f}s)")
-            print("-" * 65)
-            print("🤖 Raw Gemma Response:")
-            print(content)
-            print("-" * 65)
+            print("=" * 75)
+            print("📦 COMPLETE RAW OLLAMA RESPONSE SCHEMA:")
+            print("=" * 75)
+            print(json.dumps(raw_data, indent=2))
+            print("=" * 75)
+
+            # Diagnostic Extraction Test
+            print("\n🔍 Field Extraction Checks:")
+            message = raw_data.get("message", {})
+            print(f"  • 'message' block exists : {bool(message)}")
+            print(f"  • 'content' length       : {len(message.get('content', ''))}")
+            print(f"  • 'thinking' block exists: {bool(message.get('thinking'))}")
+            print(f"  • 'done_reason'          : '{raw_data.get('done_reason')}'")
+            print(f"  • 'eval_count'           : {raw_data.get('eval_count')}")
+
         else:
             print(f"❌ FAILED with Status Code: {response.status_code}")
             print(response.text)
@@ -60,7 +69,7 @@ def run_test():
     except httpx.ConnectError:
         print("❌ CONNECTION ERROR: Ollama is not running on localhost:11434.")
     except httpx.ReadTimeout:
-        print(f"⌛ TIMEOUT: Ollama took longer than 180 seconds to respond. Check Docker GPU/RAM allocations.")
+        print(f"⌛ TIMEOUT: Ollama took longer than 180 seconds to respond.")
     except Exception as e:
         print(f"❌ ERROR: {e}")
 
