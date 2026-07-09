@@ -2,9 +2,7 @@
   class="flex flex-col rounded-xl border border-slate-800 bg-slate-950/70 shadow-[0_0_30px_rgba(6,182,212,0.08)]"
   aria-label="Live telemetry stream"
 >
-  <header
-    class="flex items-center justify-between border-b border-slate-800 px-4 py-3"
-  >
+  <header class="flex items-center justify-between border-b border-slate-800 px-4 py-3">
     <div>
       <h2 class="text-sm font-semibold tracking-wide text-cyan-300 uppercase">
         Live Telemetry Matrix
@@ -19,33 +17,40 @@
     </span>
   </header>
 
-  <div class="telemetry-table-body overflow-auto">
+  <!-- TABLE WITH VIRTUAL SCROLL -->
+  <div style="height:500px; max-height:500px; overflow-y:scroll;">
     <table class="min-w-full text-left text-sm text-slate-200">
       <thead class="sticky top-0 z-10 bg-slate-900/95 text-xs tracking-wider text-slate-400 uppercase backdrop-blur">
         <tr>
-          <th scope="col" class="px-4 py-3 font-medium">Timestamp</th>
-          <th scope="col" class="px-4 py-3 font-medium">Source IP</th>
-          <th scope="col" class="px-4 py-3 font-medium">Path</th>
-          <th scope="col" class="px-4 py-3 font-medium">Amount</th>
-          <th scope="col" class="px-4 py-3 font-medium">Account</th>
-          <th scope="col" class="px-4 py-3 font-medium">Risk</th>
-          <th scope="col" class="px-4 py-3 font-medium">Vector</th>
-          <th scope="col" class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium">#</th>
+          <th class="px-4 py-3 font-medium">Timestamp</th>
+          <th class="px-4 py-3 font-medium">Source IP</th>
+          <th class="px-4 py-3 font-medium">Path</th>
+          <th class="px-4 py-3 font-medium">Amount</th>
+          <th class="px-4 py-3 font-medium">Account</th>
+          <th class="px-4 py-3 font-medium">Risk</th>
+          <th class="px-4 py-3 font-medium">Vector</th>
+          <th class="px-4 py-3 font-medium">Status</th>
         </tr>
       </thead>
       <tbody>
         @if (!events().length) {
           <tr>
-            <td colspan="8" class="px-4 py-10 text-center text-slate-500">
+            <td colspan="9" class="px-4 py-10 text-center text-slate-500">
               Awaiting telemetry packets from the ingestion gate…
             </td>
           </tr>
         } @else {
-          @for (event of events(); track event.id) {
+          @for (event of events(); track event.id; let i = $index) {
             <tr
-              class="border-t border-slate-800/80 transition-colors hover:bg-slate-900/60"
+              class="border-t border-slate-800/80 transition-colors hover:bg-slate-900/60 cursor-pointer"
               [class]="rowClasses(event)"
+              (click)="openModal(event)"
+              title="Click to inspect packet"
             >
+              <td class="px-4 py-3 text-xs text-slate-500 tabular-nums">
+                {{ i + 1 }}
+              </td>
               <td class="px-4 py-3 whitespace-nowrap text-slate-300">
                 {{ event.timestamp | date: 'HH:mm:ss.SSS' }}
               </td>
@@ -59,18 +64,12 @@
                 <span [class]="riskScoreClasses(event.risk_score)">{{ event.risk_score }}</span>
               </td>
               <td class="px-4 py-3">
-                <span
-                  class="rounded-full px-2 py-0.5 text-xs font-medium"
-                  [class]="vectorBadgeClasses(event)"
-                >
+                <span class="rounded-full px-2 py-0.5 text-xs font-medium" [class]="vectorBadgeClasses(event)">
                   {{ event.primary_vector }}
                 </span>
               </td>
               <td class="px-4 py-3">
-                <span
-                  class="rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase"
-                  [class]="statusBadgeClasses(event)"
-                >
+                <span class="rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide uppercase" [class]="statusBadgeClasses(event)">
                   {{ event.status }}
                 </span>
               </td>
@@ -81,3 +80,53 @@
     </table>
   </div>
 </section>
+
+<!-- DETAIL MODAL -->
+@if (selectedEvent()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+    (click)="closeModal()"
+  >
+    <div
+      class="relative w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-2xl"
+      (click)="$event.stopPropagation()"
+    >
+      <!-- Modal Header -->
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-semibold tracking-wide text-cyan-300 uppercase">
+            Packet Inspection
+          </h3>
+          <p class="text-xs text-slate-400">Full JSON configuration packet</p>
+        </div>
+        <button
+          (click)="closeModal()"
+          class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Status Banner -->
+      <div
+        class="mb-4 rounded-lg px-4 py-2 text-xs font-semibold uppercase tracking-wider"
+        [class]="selectedEvent()!.status === 'ESCALATED'
+          ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40'
+          : 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30'"
+      >
+        {{ selectedEvent()!.status }} — Risk Score: {{ selectedEvent()!.risk_score }}
+      </div>
+
+      <!-- JSON Packet -->
+      <pre class="overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-300 max-h-72">{{ selectedEvent() | json }}</pre>
+
+      <!-- Close Button -->
+      <button
+        (click)="closeModal()"
+        class="mt-4 w-full rounded-lg bg-slate-800 py-2 text-sm text-slate-300 hover:bg-slate-700 transition-colors"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+}

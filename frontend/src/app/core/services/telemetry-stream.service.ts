@@ -4,7 +4,7 @@ import { Observable, Subject } from 'rxjs';
 
 import { TelemetryEvent } from '../models/telemetry-event.model';
 
-const TELEMETRY_STREAM_URL = 'http://127.0.0.1:8000/api/v1/telemetry/stream';
+const TELEMETRY_STREAM_URL = 'http://127.0.0.1:8002/api/v1/telemetry/stream';
 
 @Injectable({ providedIn: 'root' })
 export class TelemetryStreamService {

@@ -5,10 +5,10 @@ services:
       dockerfile: Dockerfile
     container_name: rdna-guard-backend
     ports:
-      - "8000:8000"
+      - "8002:8000"
     environment:
       OLLAMA_HOST: http://host.docker.internal:11434
-      GEMMA_MODEL: gemma4:12b
+      GEMMA_MODEL: gemma:2b
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
