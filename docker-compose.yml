@@ -50,6 +50,21 @@ services:
       echo '\n✅ Model pull queued successfully!';
       "
 
+  ollama-pull-gemma2:
+    image: curlimages/curl:latest
+    container_name: rdna-guard-ollama-pull-gemma2
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - rdna-network
+    entrypoint: >
+      /bin/sh -c "
+      echo '⏳ Initiating Ollama pull for model gemma2:2b...';
+      curl -X POST http://ollama:11434/api/pull -H 'Content-Type: application/json' -d '{\"name\": \"gemma2:2b\", \"stream\": false}';
+      echo '\n✅ Model pull queued successfully!';
+      "
+
   backend:
     build:
       context: ./backend
