@@ -3,7 +3,8 @@ import { ReplaySubject } from 'rxjs';
 
 import { TelemetryEvent } from '../models/telemetry-event.model';
 
-const TELEMETRY_STREAM_URL = 'http://127.0.0.1:8000/api/v1/telemetry/stream';
+// Relative path so the SPA works on the unified FastAPI origin (and via ng serve proxy).
+const TELEMETRY_STREAM_URL = '/api/v1/telemetry/stream';
 const REPLAY_BUFFER_SIZE = 50;
 
 @Injectable({ providedIn: 'root' })

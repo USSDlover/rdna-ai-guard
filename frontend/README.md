@@ -70,7 +70,7 @@ export class TelemetryStreamService {
   readonly latestEvent = signal<any>(null);
 
   connectTelemetryStream(): void {
-    const stream = new EventSource('http://localhost:8000/api/v1/telemetry/stream');
+    const stream = new EventSource('/api/v1/telemetry/stream');
     
     stream.addEventListener('telemetry', (event: MessageEvent) => {
       const data = JSON.parse(event.data);

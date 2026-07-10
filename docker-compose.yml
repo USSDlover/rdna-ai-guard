@@ -65,11 +65,12 @@ services:
       echo '\n✅ Model pull queued successfully!';
       "
 
-  backend:
+  # Single production container: Angular SPA + FastAPI on port 8000
+  app:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: rdna-guard-backend
+    container_name: rdna-guard-app
     ports:
       - "8000:8000"
     environment:
@@ -81,19 +82,6 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
-    networks:
-      - rdna-network
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: rdna-guard-frontend
-    ports:
-      - "4200:80"
-    depends_on:
-      - backend
     networks:
       - rdna-network
     restart: unless-stopped

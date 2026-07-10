@@ -11,26 +11,22 @@ Unified FinSec telemetry platform for the AMD Developer Hackathon. The backend i
 
 ```text
 RDNA Guard/
+├── Dockerfile                    # Single-container image (Angular build + FastAPI)
+├── docker-compose.yml            # Postgres, Ollama, unified app
 ├── backend/                      # FastAPI async API (Python 3.12)
 │   ├── app/
 │   │   ├── ai/                   # Ollama Gemma triage client + response models
-│   │   ├── agents/                 # LangGraph multi-agent cloud escalation
-│   │   ├── core/                   # Settings, DB, SSE broadcast manager
-│   │   ├── models/                 # SQLModel + Pydantic schemas
-│   │   ├── network/                # Telemetry triage + SSE routes
-│   │   ├── services/               # PostgreSQL telemetry persistence
-│   │   └── scripts/                # CLI utilities for testing & demo data
+│   │   ├── agents/               # LangGraph multi-agent cloud escalation
+│   │   ├── core/                 # Settings, DB, SSE broadcast manager
+│   │   ├── models/               # SQLModel + Pydantic schemas
+│   │   ├── network/              # Telemetry triage + SSE routes
+│   │   ├── services/             # PostgreSQL telemetry persistence
+│   │   └── scripts/              # CLI utilities for testing & demo data
 │   ├── test_ai_301_integration.py
 │   ├── test_ai_302_integration.py
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/                     # Angular control station
-│   ├── src/app/
-│   │   ├── core/                 # SSE stream + shared telemetry state
-│   │   └── features/             # Cyber grid, ledger audit, dashboard shell
-│   ├── nginx.conf
-│   └── Dockerfile
-└── docker-compose.yml            # Postgres, Ollama, backend, frontend
+│   └── requirements.txt
+└── frontend/                     # Angular control station (built into the app image)
+    └── src/app/
 ```
 
 ---
@@ -67,12 +63,19 @@ Detached mode:
 docker compose up --build -d
 ```
 
-### 2. Access the services
+### 2. Access the app
+
+After the stack is up, open the unified app at:
+
+**http://localhost:8000**
+
+FastAPI serves the Angular UI and the API on the same port.
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Frontend (Control Grid) | http://localhost:4200 | Angular dashboard (Nginx) |
-| Backend (API Gateway) | http://localhost:8000 | FastAPI root |
+| **App (UI + API)** | **http://localhost:8000** | Angular control grid served by FastAPI |
+| Cyber Grid | http://localhost:8000/dashboard/cyber-grid | Live telemetry table |
+| Ledger Audit | http://localhost:8000/dashboard/ledger-audit | Fraud ledger dashboard |
 | API Documentation | http://localhost:8000/docs | Interactive Swagger UI |
 | Health Check | http://localhost:8000/health | Service status probe |
 | SSE Telemetry Stream | http://localhost:8000/api/v1/telemetry/stream | Live event stream |
@@ -91,10 +94,9 @@ docker compose down
 |---------|------|
 | `postgres` | PostgreSQL 16 — telemetry persistence |
 | `ollama` | Local LLM runtime (Gemma model pull on startup) |
-| `backend` | FastAPI — triage, SSE, LangGraph escalation |
-| `frontend` | Angular app served by Nginx (`4200:80`) |
+| `app` | Single container — FastAPI + Angular static assets on port `8000` |
 
-All services share the `rdna-network` bridge. The backend waits for Postgres and Ollama health checks before starting.
+All services share the `rdna-network` bridge. The `app` service waits for Postgres and Ollama health checks before starting.
 
 ### Environment variables (`backend/.env`)
 
@@ -146,7 +148,7 @@ curl -N http://localhost:8000/api/v1/telemetry/stream
 
 ### Frontend only (native Angular)
 
-The frontend expects the backend at `http://127.0.0.1:8000`. Start the backend first.
+For local UI development, start the backend first. `ng serve` proxies `/api` and `/health` to `http://127.0.0.1:8000` via `proxy.conf.json`.
 
 ```bash
 cd frontend
@@ -154,7 +156,8 @@ npm install
 npm start
 ```
 
-Dev server: http://localhost:4200
+Dev server: http://localhost:4200  
+Production / Docker access remains: **http://localhost:8000**
 
 Production build:
 
@@ -332,9 +335,9 @@ python -m app.scripts.generate_e2e_data
 # 4. Verify cloud escalation (with FIREWORKS_API_KEY set)
 python -m app.scripts.test_cloud_escalation --require-fireworks
 
-# 5. Open frontend
-#    Cyber Grid:    http://localhost:4200/dashboard/cyber-grid
-#    Ledger Audit:  http://localhost:4200/dashboard/ledger-audit
+# 5. Open the app at http://localhost:8000
+#    Cyber Grid:    http://localhost:8000/dashboard/cyber-grid
+#    Ledger Audit:  http://localhost:8000/dashboard/ledger-audit
 ```
 
 Click any row in either dashboard to open the detail modal — escalated events show local Gemma triage plus cloud CyberSec / Anti-Fraud analysis when enrichment has completed.
@@ -345,8 +348,8 @@ Click any row in either dashboard to open the detail modal — escalated events 
 
 | Port | Service | Context |
 |------|---------|---------|
-| `4200` | Frontend | `ng serve` (dev) or Docker Compose (`4200:80`) |
-| `8000` | Backend | `uvicorn` (dev) or Docker Compose (`8000:8000`) |
+| `8000` | **App (UI + API)** | Unified FastAPI container — open **http://localhost:8000** |
+| `4200` | Frontend (dev only) | `ng serve` during native Angular development |
 | `5432` | PostgreSQL | Telemetry persistence |
 | `11434` | Ollama | Local Gemma inference |
 
@@ -386,11 +389,11 @@ LangGraph runs asynchronously after local triage. Wait ~15–90s or run `test_cl
 
 **Docker build fails on frontend**
 
-Ensure `package-lock.json` is present in `frontend/`. The Dockerfile uses `npm ci`.
+Ensure `package-lock.json` is present in `frontend/`. The root multi-stage Dockerfile runs `npm ci` in Stage 1.
 
 **Angular routes return 404 in Docker**
 
-The Nginx config in `frontend/nginx.conf` uses `try_files` fallback to `index.html` for client-side routing.
+FastAPI mounts the Angular build with `StaticFiles(..., html=True)`, which serves `index.html` for client-side routes under http://localhost:8000.
 
 ---
 
