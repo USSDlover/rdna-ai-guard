@@ -1,14 +1,17 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { TelemetryEvent } from '../models/telemetry-event.model';
+import { TelemetryStream } from './telemetry-stream';
 
-// Relative path so the SPA works on the unified FastAPI origin (and via ng serve proxy).
-const TELEMETRY_STREAM_URL = '/api/v1/telemetry/stream';
 const REPLAY_BUFFER_SIZE = 50;
 
-@Injectable({ providedIn: 'root' })
-export class TelemetryStreamService {
+/**
+ * Live SSE telemetry producer against the FastAPI backend.
+ */
+@Injectable()
+export class TelemetryStreamService extends TelemetryStream {
   private readonly destroyRef = inject(DestroyRef);
   private readonly telemetrySubject = new ReplaySubject<TelemetryEvent>(REPLAY_BUFFER_SIZE);
   private eventSource: EventSource | null = null;
@@ -16,9 +19,14 @@ export class TelemetryStreamService {
   readonly telemetry$ = this.telemetrySubject.asObservable();
 
   constructor() {
+    super();
     this.connect();
-
     this.destroyRef.onDestroy(() => this.disconnect());
+  }
+
+  private streamUrl(): string {
+    const base = environment.apiUrl.replace(/\/$/, '');
+    return `${base}/v1/telemetry/stream`;
   }
 
   private connect(): void {
@@ -28,7 +36,7 @@ export class TelemetryStreamService {
 
     this.disconnect();
 
-    this.eventSource = new EventSource(TELEMETRY_STREAM_URL);
+    this.eventSource = new EventSource(this.streamUrl());
 
     this.eventSource.addEventListener('telemetry', (message: MessageEvent<string>) => {
       try {

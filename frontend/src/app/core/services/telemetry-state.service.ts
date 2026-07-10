@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 
 import { TelemetryEvent } from '../models/telemetry-event.model';
-import { TelemetryStreamService } from './telemetry-stream.service';
+import { TelemetryStream } from './telemetry-stream';
 
 const MAX_EVENT_BUFFER = 50;
 
@@ -11,7 +11,7 @@ const MAX_EVENT_BUFFER = 50;
  */
 @Injectable({ providedIn: 'root' })
 export class TelemetryStateService {
-  private readonly telemetryStream = inject(TelemetryStreamService);
+  private readonly telemetryStream = inject(TelemetryStream);
 
   private readonly eventBuffer: TelemetryEvent[] = [];
 

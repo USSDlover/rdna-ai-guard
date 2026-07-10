@@ -1,0 +1,12 @@
+# Netlify publish settings for the Angular mock / demo build.
+# Build command: npm run build:mock
+# Publish directory: dist/frontend/browser
+
+[build]
+  command = "npm run build:mock"
+  publish = "dist/frontend/browser"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

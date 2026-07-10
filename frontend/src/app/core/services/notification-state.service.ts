@@ -1,14 +1,14 @@
 import { Injectable, inject, signal } from '@angular/core';
 
 import { TelemetryEvent } from '../models/telemetry-event.model';
-import { TelemetryStreamService } from './telemetry-stream.service';
+import { TelemetryStream } from './telemetry-stream';
 
 const HIGH_RISK_THRESHOLD = 85;
 const AUTO_DISMISS_MS = 6_000;
 
 @Injectable({ providedIn: 'root' })
 export class NotificationStateService {
-  private readonly telemetryStream = inject(TelemetryStreamService);
+  private readonly telemetryStream = inject(TelemetryStream);
 
   private readonly dismissTimers = new Map<string, ReturnType<typeof setTimeout>>();
 

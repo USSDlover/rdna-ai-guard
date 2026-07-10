@@ -44,6 +44,27 @@
               ],
               "outputHashing": "all"
             },
+            "mock": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.mock.ts"
+                }
+              ]
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,
@@ -63,6 +84,9 @@
             },
             "development": {
               "buildTarget": "frontend:build:development"
+            },
+            "mock": {
+              "buildTarget": "frontend:build:mock"
             }
           },
           "defaultConfiguration": "development"
