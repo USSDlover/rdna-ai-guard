@@ -13,8 +13,10 @@
 **/.vscode
 **/.idea
 **/*.log
-backend/.env
-backend/.env.local
+.env
+.env.local
+**/.env
+**/.env.local
 frontend/README.md
 **/agent-transcripts
 docker-compose.yml

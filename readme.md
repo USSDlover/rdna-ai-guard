@@ -13,6 +13,7 @@ Unified FinSec telemetry platform for the AMD Developer Hackathon. The backend i
 RDNA Guard/
 ├── Dockerfile                    # Single-container image (Angular build + FastAPI)
 ├── docker-compose.yml            # Postgres, Ollama, unified app
+├── .env.example                  # Env template (copy to .env)
 ├── backend/                      # FastAPI async API (Python 3.12)
 │   ├── app/
 │   │   ├── ai/                   # Ollama Gemma triage client + response models
@@ -43,7 +44,7 @@ RDNA Guard/
 
 Optional for cloud escalation:
 
-- **Fireworks AI API key** — set `FIREWORKS_API_KEY` in `backend/.env` for live LangGraph agents
+- **Fireworks AI API key** — set `FIREWORKS_API_KEY` in the root `.env` for live LangGraph agents
 
 ---
 
@@ -98,9 +99,36 @@ docker compose down
 
 All services share the `rdna-network` bridge. The `app` service waits for Postgres and Ollama health checks before starting.
 
-### Environment variables (`backend/.env`)
+### Pre-built image (GitHub Container Registry)
 
-Copy `backend/.env.example` to `backend/.env` and adjust as needed:
+On every push to `main` (and on version tags `v*`), GitHub Actions builds the root `Dockerfile` and publishes to GHCR:
+
+```text
+ghcr.io/ussdlover/rdna-ai-guard:latest
+```
+
+Pull and run (still needs Postgres / Ollama reachable via env):
+
+```bash
+docker pull ghcr.io/ussdlover/rdna-ai-guard:latest
+
+docker run --rm -p 8000:8000 \
+  -e DATABASE_URL=postgresql+asyncpg://postgres:guard_password@host.docker.internal:5432/rdna_guard \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  ghcr.io/ussdlover/rdna-ai-guard:latest
+```
+
+If the package is private, authenticate first:
+
+```bash
+echo $TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+```
+
+Workflow: `.github/workflows/docker-publish.yml` (also runs a build-only check on pull requests).
+
+### Environment variables (root `.env`)
+
+Copy `.env.example` to `.env` at the repository root and adjust as needed:
 
 ```env
 PROJECT_NAME=RDNA_AI_Guard
@@ -112,7 +140,7 @@ FIREWORKS_MODEL=accounts/fireworks/models/llama-v3p1-70b-instruct
 DATABASE_URL=postgresql+asyncpg://postgres:guard_password@localhost:5432/rdna_guard
 ```
 
-In Docker Compose, `DATABASE_URL` and `OLLAMA_HOST` are overridden to point at container service names.
+In Docker Compose, `DATABASE_URL` and `OLLAMA_HOST` are overridden to point at container service names. Other values (e.g. `FIREWORKS_API_KEY`) are loaded from the root `.env` via `env_file`.
 
 ---
 

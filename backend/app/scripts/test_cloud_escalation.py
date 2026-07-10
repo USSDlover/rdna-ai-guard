@@ -369,7 +369,7 @@ async def async_main(args: argparse.Namespace) -> int:
 
     if args.require_fireworks and not report.fireworks_configured:
         print("\n  FAIL  --require-fireworks set but FIREWORKS_API_KEY is empty.")
-        print("        Add FIREWORKS_API_KEY to backend/.env and restart the backend.")
+        print("        Add FIREWORKS_API_KEY to the root .env and restart the backend.")
         return 1
 
     scenarios = [CYBER_SCENARIO, FRAUD_SCENARIO]
