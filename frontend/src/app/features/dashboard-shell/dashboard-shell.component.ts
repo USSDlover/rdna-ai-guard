@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AlertBannerComponent } from '../../shared/components/alert-banner/alert-banner.component';
 
 interface NavItem {
   label: string;
@@ -10,7 +11,7 @@ interface NavItem {
 
 @Component({
   selector: 'app-dashboard-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertBannerComponent],
   templateUrl: './dashboard-shell.component.html',
   styleUrl: './dashboard-shell.component.css',
 })
@@ -24,12 +25,11 @@ export class DashboardShellComponent {
     },
     {
       label: 'Financial Ledger Audit',
-      route: '/dashboard/financial-ledger',
+      route: '/dashboard/ledger-audit',
       description: 'Fraud syndicate tracing',
-      enabled: false,
+      enabled: true,
     },
   ]);
-
   protected readonly topStats = signal([
     { label: 'Ingestion Gate', value: 'ONLINE', tone: 'text-emerald-400' },
     { label: 'Ollama Bridge', value: 'ACTIVE', tone: 'text-cyan-400' },
